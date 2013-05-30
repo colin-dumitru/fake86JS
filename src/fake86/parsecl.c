@@ -102,7 +102,7 @@ void parsecl (int argc, char *argv[]) {
     textbase = 0xB8000;
     ethif = 254;
     usefullscreen = 0;
-    biosfile = "assets/pcxtbios.bin";
+    biosfile = "data/pcxtbios.bin";
 
     for (i=1; i<argc; i++) {
         if (strcmpi (argv[i], "-h") ==0) showhelp ();
@@ -182,7 +182,7 @@ void parsecl (int argc, char *argv[]) {
     }
 
     if(!disk[0].inserted) {
-        insertdisk(0, "assets/dos-boot.img");
+        insertdisk(0, "data/dos-boot.img");
     }
 
     if (bootdrive==254) {

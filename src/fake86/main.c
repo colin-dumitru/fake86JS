@@ -221,13 +221,13 @@ int main (int argc, char *argv[]) {
     memset (readonly, 0, 0x100000);
     if (!loadrom (0xFE000UL, biosfile, 1) )
         return (-1);
-    loadrom (0xF6000UL, "assets/rombasic.bin", 0);
+    loadrom (0xF6000UL, "data/rombasic.bin", 0);
 
 #ifdef DISK_CONTROLLER_ATA
     if (!loadrom (0xD0000UL, PATH_DATAFILES "ide_xt.bin", 1) ) return (-1);
 #endif
 
-    if (!loadrom (0xC0000UL, "assets/videorom.bin", 1) )
+    if (!loadrom (0xC0000UL, "data/videorom.bin", 1) )
         return (-1);
 
     printf ("\nInitializing CPU... ");
@@ -248,6 +248,13 @@ int main (int argc, char *argv[]) {
     startConsole();
 
     lasttick = starttick = SDL_GetTicks();
+
+#ifdef EM
+    registerTimeout(&runBurst, 1);
+#else
+    runBurstWhileRunning();
+#endif
+
 
     endtick = (SDL_GetTicks() - starttick) / 1000;
     if (endtick == 0) endtick = 1; //avoid divide-by-zero exception in the code below, if ran for less than 1 second

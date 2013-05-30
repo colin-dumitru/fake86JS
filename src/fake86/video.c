@@ -252,9 +252,9 @@ void vidinterrupt() {
 
 void initcga() {
     FILE *fontfile;
-    fontfile = fopen ("assets/asciivga.dat", "rb");
+    fontfile = fopen ("data/asciivga.dat", "rb");
     if (fontfile==NULL) {
-        printf ("FATAL: Cannot open ", "assets/asciivga!\n");
+        printf ("FATAL: Cannot open ", "data/asciivga!\n");
         exit (1);
     }
 

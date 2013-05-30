@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include "mutex.h"
 #include "js.h"
+#include "config.h"
 
 #ifdef _WIN32
 CRITICAL_SECTION screenmutex;
@@ -116,11 +117,14 @@ void runVideoTick() {
         }
         totalframes++;
     }
+
+#ifndef EM
     if (!renderbenchmark) {
         delaycalc = framedelay - (SDL_GetTicks() - cursorcurtick);
         if (delaycalc > framedelay) delaycalc = framedelay;
         SDL_Delay (delaycalc);
     }
+#endif
 }
 
 uint8_t initscreen (uint8_t *ver) {
@@ -133,16 +137,17 @@ uint8_t initscreen (uint8_t *ver) {
             return (0);
     }
     screen = SDL_SetVideoMode (640, 400, 32, SDL_HWSURFACE);
-    if (screen == NULL) return (0);
+    if (screen == NULL)
+        return (0);
     sprintf (windowtitle, "%s", ver);
     setwindowtitle ("");
     initcga();
 
-#ifdef _WIN32
+#ifdef EM
+    registerTimeout(&runVideoTick, 1);
+#elif defined _WIN32
     InitializeCriticalSection (&screenmutex);
     _beginthread (VideoThread, 0, NULL);
-#elif defined EM
-    registerTimeout(&runVideoTick, 1);
 #else
     pthread_create (&vidthread, NULL, (void *) VideoThread, NULL);
 #endif
