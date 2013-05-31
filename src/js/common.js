@@ -1,5 +1,5 @@
 mergeInto(LibraryManager.library, {
-  registerTimeout: function (func, delay){
+  registerTimeout: function (funcPointer, delay){
 
 		function runPeriodicFunction(func, delay) {
 			func();
@@ -8,7 +8,8 @@ mergeInto(LibraryManager.library, {
 			}, delay);
 		}
 
-		console.log("Starting periodic function: " + func + " delay: " + delay);
-		runPeriodicFunction(Module["_" + func], delay);
+		var functionName = Pointer_stringify(funcPointer);
+		console.log("Starting periodic function: " + functionName + " delay: " + delay);
+		runPeriodicFunction(Module["_" + functionName], delay);
 	}
 });

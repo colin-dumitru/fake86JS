@@ -238,10 +238,8 @@ int main (int argc, char *argv[]) {
     reset86();
     printf ("OK!\n");
 
-
     inithardware();
     printf("Hardware initialisation done\n");
-
 
 #ifdef _WIN32
     printf("Initializing critical section\n");
@@ -253,7 +251,7 @@ int main (int argc, char *argv[]) {
     lasttick = starttick = SDL_GetTicks();
 
 #ifdef EM
-    registerTimeout("runBurst", 1);
+    registerTimeout("runBurst", 0);
 #else
     runBurstWhileRunning();
 #endif
