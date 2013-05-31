@@ -39,6 +39,7 @@ pthread_t consolethread;
 #endif
 
 const uint8_t *build = "Fake86JS 0.01";
+const int burstLegth = BURST_LENGTH;
 
 extern uint8_t RAM[0x100000], readonly[0x100000];
 extern uint8_t running, renderbenchmark;
@@ -196,14 +197,16 @@ void startConsole() {
 }
 
 void runBurst() {
-    exec86 (10000);
-    handleinput();
-    if (scrmodechange)
-        doscrmodechange();
+    for (int i = 0; i < burstLegth; i++) {
+        exec86 (10000);
+        handleinput();
+        if (scrmodechange)
+            doscrmodechange();
 #ifdef NETWORKING_ENABLED
-    if (ethif < 254)
-        dispatch();
+        if (ethif < 254)
+            dispatch();
 #endif
+    }
 }
 
 void runBurstWhileRunning() {
@@ -250,7 +253,7 @@ int main (int argc, char *argv[]) {
     lasttick = starttick = SDL_GetTicks();
 
 #ifdef EM
-    registerTimeout(&runBurst, 1);
+    registerTimeout("runBurst", 1);
 #else
     runBurstWhileRunning();
 #endif

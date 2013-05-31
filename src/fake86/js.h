@@ -1,6 +1,6 @@
 #ifndef JS_H
 #define JS_H
 
-extern void registerTimeout(void (*func)(), long timeout);
+extern void registerTimeout(char* functionName, long timeout);
 
 #endif // JS_H

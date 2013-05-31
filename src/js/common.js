@@ -5,10 +5,10 @@ mergeInto(LibraryManager.library, {
 			func();
 			window.setTimeout(function() {
 				runPeriodicFunction(func, delay);
-			}, 10);
+			}, delay);
 		}
 
 		console.log("Starting periodic function: " + func + " delay: " + delay);
-		runPeriodicFunction(FUNCTION_TABLE[func], delay);
+		runPeriodicFunction(Module["_" + func], delay);
 	}
 });

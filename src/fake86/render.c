@@ -144,7 +144,7 @@ uint8_t initscreen (uint8_t *ver) {
     initcga();
 
 #ifdef EM
-    registerTimeout(&runVideoTick, 1);
+    registerTimeout("runVideoTick", 1);
 #elif defined _WIN32
     InitializeCriticalSection (&screenmutex);
     _beginthread (VideoThread, 0, NULL);
