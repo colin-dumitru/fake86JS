@@ -2,9 +2,8 @@ mergeInto(LibraryManager.library, {
   registerTimeout: function (funcPointer, delay){
 
 		function runPeriodicFunction(func, delay) {
-			func();
-			window.setTimeout(function() {
-				runPeriodicFunction(func, delay);
+			window.setInterval(function() {
+				func();
 			}, delay);
 		}
 

@@ -241,6 +241,9 @@ int main (int argc, char *argv[]) {
     inithardware();
     printf("Hardware initialisation done\n");
 
+    initLookupTables();
+    printf("Lookup tables initialisation done\n");
+
 #ifdef _WIN32
     printf("Initializing critical section\n");
     InitializeCriticalSection (&screenmutex);

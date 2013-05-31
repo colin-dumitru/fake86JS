@@ -75,3 +75,5 @@ union _bytewordregs_ {
 #define getsegreg(regid)	segregs[regid]
 #define putsegreg(regid, writeval)	segregs[regid] = writeval
 #define segbase(x)	((uint32_t) x << 4)
+
+
