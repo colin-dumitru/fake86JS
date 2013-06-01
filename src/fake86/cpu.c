@@ -1313,6 +1313,11 @@ uint64_t	lastcountertimer = 0, counterticks = 10000;
 extern uint8_t	nextintr();
 extern void	timing();
 
+uint32_t loopcount;
+uint8_t	docontinue;
+uint16_t firstip;
+uint16_t trap_toggle = 0;
+
 void (*opcodeTable[256])() = {0};
 
 void opAdd8() {
@@ -1861,6 +1866,1363 @@ void opCmp16_3(){
     flag_sub16 (oper1, oper2);
 }
 
+void opAas() {
+    /* 3F AAS ASCII */
+    if ( ( (regs.byteregs[regal] & 0xF) > 9) || (af == 1) ) {
+        regs.byteregs[regal] = regs.byteregs[regal] - 6;
+        regs.byteregs[regah] = regs.byteregs[regah] - 1;
+        af = 1;
+        cf = 1;
+    }
+    else {
+        af = 0;
+        cf = 0;
+    }
+
+    regs.byteregs[regal] = regs.byteregs[regal] & 0xF;
+}
+
+void opIncEax(){
+    /* 40 INC eAX */
+    oldcf = cf;
+    oper1 = getreg16 (regax);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regax, res16);
+}
+
+void opIncEcx(){
+/* 41 INC eCX */
+    oldcf = cf;
+    oper1 = getreg16 (regcx);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regcx, res16);
+}
+
+void opIncEdx(){
+    /* 42 INC eDX */
+    oldcf = cf;
+    oper1 = getreg16 (regdx);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regdx, res16);
+}
+
+void opIncEbx(){
+    /* 43 INC eBX */
+    oldcf = cf;
+    oper1 = getreg16 (regbx);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regbx, res16);
+}
+
+void opIncEsp(){
+    /* 44 INC eSP */
+    oldcf = cf;
+    oper1 = getreg16 (regsp);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regsp, res16);
+}
+
+void opIncEbp(){
+    /* 45 INC eBP */
+    oldcf = cf;
+    oper1 = getreg16 (regbp);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regbp, res16);
+}
+
+void opIncEsi(){
+    /* 46 INC eSI */
+    oldcf = cf;
+    oper1 = getreg16 (regsi);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regsi, res16);
+}
+
+void opIncEdi(){
+    /* 47 INC eDI */
+    oldcf = cf;
+    oper1 = getreg16 (regdi);
+    oper2 = 1;
+    op_add16();
+    cf = oldcf;
+    putreg16 (regdi, res16);
+}
+
+void opDecEax(){
+    /* 48 DEC eAX */
+    oldcf = cf;
+    oper1 = getreg16 (regax);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regax, res16);
+}
+
+void opDecEcx(){
+    /* 49 DEC eCX */
+    oldcf = cf;
+    oper1 = getreg16 (regcx);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regcx, res16);
+}
+
+void opDecEdx(){
+    /* 4A DEC eDX */
+    oldcf = cf;
+    oper1 = getreg16 (regdx);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regdx, res16);
+}
+
+void opDecEbx(){
+    /* 4B DEC eBX */
+    oldcf = cf;
+    oper1 = getreg16 (regbx);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regbx, res16);
+}
+
+void opDecEsp(){
+    /* 4C DEC eSP */
+    oldcf = cf;
+    oper1 = getreg16 (regsp);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regsp, res16);
+}
+
+void opDecEbp(){
+    /* 4D DEC eBP */
+    oldcf = cf;
+    oper1 = getreg16 (regbp);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regbp, res16);
+}
+
+void opDecEsi(){
+    /* 4E DEC eSI */
+    oldcf = cf;
+    oper1 = getreg16 (regsi);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regsi, res16);
+}
+
+void opDecEdi(){
+    /* 4F DEC eDI */
+    oldcf = cf;
+    oper1 = getreg16 (regdi);
+    oper2 = 1;
+    op_sub16();
+    cf = oldcf;
+    putreg16 (regdi, res16);
+}
+
+void opPushEax(){
+    /* 50 PUSH eAX */
+    push (getreg16 (regax) );
+}
+
+void opPushEcx(){
+    /* 51 PUSH eCX */
+    push (getreg16 (regcx) );
+}
+
+void opPushEdx(){
+    /* 52 PUSH eDX */
+    push (getreg16 (regdx) );
+}
+
+void opPushEbx(){
+    /* 53 PUSH eBX */
+    push (getreg16 (regbx) );
+}
+
+void opPushEsp(){
+    /* 54 PUSH eSP */
+    push (getreg16 (regsp) - 2);
+}
+
+void opPushEbp(){
+    /* 55 PUSH eBP */
+    push (getreg16 (regbp) );
+}
+
+void opPushEsi(){
+    /* 56 PUSH eSI */
+    push (getreg16 (regsi) );
+}
+
+void opPushEdi(){
+    /* 57 PUSH eDI */
+    push (getreg16 (regdi) );
+}
+
+void opPopEax(){
+    /* 58 POP eAX */
+    putreg16 (regax, pop() );
+}
+
+void opPopEcx(){
+    /* 59 POP eCX */
+    putreg16 (regcx, pop() );
+}
+
+void opPopEdx(){
+    /* 5A POP eDX */
+    putreg16 (regdx, pop() );
+}
+
+void opPopEbx(){
+    /* 5B POP eBX */
+    putreg16 (regbx, pop() );
+}
+
+void opPopEsp(){
+    /* 5C POP eSP */
+    putreg16 (regsp, pop() );
+}
+
+void opPopEbp(){
+    /* 5D POP eBP */
+    putreg16 (regbp, pop() );
+}
+
+void opPopEsi(){
+    /* 5E POP eSI */
+    putreg16 (regsi, pop() );
+}
+
+void opPopEdi(){
+    /* 5F POP eDI */
+    putreg16 (regdi, pop() );
+}
+
+void opPushA(){
+    /* 60 PUSHA (80186+) */
+    oldsp = getreg16 (regsp);
+    push (getreg16 (regax) );
+    push (getreg16 (regcx) );
+    push (getreg16 (regdx) );
+    push (getreg16 (regbx) );
+    push (oldsp);
+    push (getreg16 (regbp) );
+    push (getreg16 (regsi) );
+    push (getreg16 (regdi) );
+}
+
+void opPopA(){
+    /* 61 POPA (80186+) */
+    putreg16 (regdi, pop() );
+    putreg16 (regsi, pop() );
+    putreg16 (regbp, pop() );
+    dummy = pop();
+    putreg16 (regbx, pop() );
+    putreg16 (regdx, pop() );
+    putreg16 (regcx, pop() );
+    putreg16 (regax, pop() );
+}
+
+void opBound(){
+    /* 62 BOUND Gv, Ev (80186+) */
+    modregrm();
+    getea (rm);
+    if (signext32 (getreg16 (reg) ) < signext32 ( getmem16 (ea >> 4, ea & 15) ) ) {
+        intcall86 (5); //bounds check exception
+    }
+    else {
+        ea += 2;
+        if (signext32 (getreg16 (reg) ) > signext32 ( getmem16 (ea >> 4, ea & 15) ) ) {
+            intcall86(5); //bounds check exception
+        }
+    }
+}
+
+void opPushIv(){
+    /* 68 PUSH Iv (80186+) */
+    push (getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opImul(){
+    /* 69 IMUL Gv Ev Iv (80186+) */
+    modregrm();
+    temp1 = readrm16 (rm);
+    temp2 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    if ( (temp1 & 0x8000L) == 0x8000L) {
+        temp1 = temp1 | 0xFFFF0000L;
+    }
+
+    if ( (temp2 & 0x8000L) == 0x8000L) {
+        temp2 = temp2 | 0xFFFF0000L;
+    }
+
+    temp3 = temp1 * temp2;
+    putreg16 (reg, temp3 & 0xFFFFL);
+    if (temp3 & 0xFFFF0000L) {
+        cf = 1;
+        of = 1;
+    }
+    else {
+        cf = 0;
+        of = 0;
+    }
+}
+
+void opPushIb(){
+    /* 6A PUSH Ib (80186+) */
+    push (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+}
+
+void opImul_2(){
+    /* 6B IMUL Gv Eb Ib (80186+) */
+    modregrm();
+    temp1 = readrm16 (rm);
+    temp2 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if ( (temp1 & 0x8000L) == 0x8000L) {
+        temp1 = temp1 | 0xFFFF0000L;
+    }
+
+    if ( (temp2 & 0x8000L) == 0x8000L) {
+        temp2 = temp2 | 0xFFFF0000L;
+    }
+
+    temp3 = temp1 * temp2;
+    putreg16 (reg, temp3 & 0xFFFFL);
+    if (temp3 & 0xFFFF0000L) {
+        cf = 1;
+        of = 1;
+    }
+    else {
+        cf = 0;
+        of = 0;
+    }
+}
+
+void opInsb(){
+    /* 6E INSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem8 (useseg, getreg16 (regsi) , portin (regs.wordregs[regdx]) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 1);
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 1);
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opInsw(){
+    /* 6F INSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem16 (useseg, getreg16 (regsi) , portin16 (regs.wordregs[regdx]) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 2);
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 2);
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opOutsb(){
+    /* 6E OUTSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    portout (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 1);
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 1);
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opOutsw(){
+    /* 6F OUTSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    portout16 (regs.wordregs[regdx], getmem16 (useseg, getreg16 (regsi) ) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 2);
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 2);
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opJo(){
+    /* 70 JO Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (of) {
+        ip = ip + temp16;
+    }
+}
+
+void opJno(){
+    /* 71 JNO Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!of) {
+        ip = ip + temp16;
+    }
+}
+
+void opJb(){	/* 72 JB Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (cf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJnb(){
+    /* 73 JNB Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!cf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJz(){
+    /* 74 JZ Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJnz(){
+    /* 75 JNZ Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJbe(){
+    /* 76 JBE Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (cf || zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJa(){
+    /* 77 JA Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!cf && !zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJs(){
+    /* 78 JS Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (sf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJns(){
+    /* 79 JNS Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!sf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJpe(){
+    /* 7A JPE Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (pf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJpo(){
+    /* 7B JPO Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!pf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJl(){
+    /* 7C JL Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (sf != of) {
+        ip = ip + temp16;
+    }
+}
+
+void opJge(){
+    /* 7D JGE Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (sf == of) {
+        ip = ip + temp16;
+    }
+}
+
+void opJle(){
+    /* 7E JLE Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if ( (sf != of) || zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opJg(){
+    /* 7F JG Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (!zf && (sf == of) ) {
+        ip = ip + temp16;
+    }
+}
+
+void opGrp1(){
+    /* 80/82 GRP1 Eb Ib */
+    modregrm();
+    oper1b = readrm8 (rm);
+    oper2b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    switch (reg) {
+    case 0:
+        op_add8();
+        break;
+    case 1:
+        op_or8();
+        break;
+    case 2:
+        op_adc8();
+        break;
+    case 3:
+        op_sbb8();
+        break;
+    case 4:
+        op_and8();
+        break;
+    case 5:
+        op_sub8();
+        break;
+    case 6:
+        op_xor8();
+        break;
+    case 7:
+        flag_sub8 (oper1b, oper2b);
+        break;
+    default:
+        break;	/* to avoid compiler warnings */
+    }
+
+    if (reg < 7) {
+        writerm8 (rm, res8);
+    }
+}
+
+void opGrp1_2(){
+    /* 81 GRP1 Ev Iv */
+    /* 83 GRP1 Ev Ib */
+    modregrm();
+    oper1 = readrm16 (rm);
+    if (opcode == 0x81) {
+        oper2 = getmem16 (segregs[regcs], ip);
+        StepIP (2);
+    }
+    else {
+        oper2 = signext (getmem8 (segregs[regcs], ip) );
+        StepIP (1);
+    }
+
+    switch (reg) {
+    case 0:
+        op_add16();
+        break;
+    case 1:
+        op_or16();
+        break;
+    case 2:
+        op_adc16();
+        break;
+    case 3:
+        op_sbb16();
+        break;
+    case 4:
+        op_and16();
+        break;
+    case 5:
+        op_sub16();
+        break;
+    case 6:
+        op_xor16();
+        break;
+    case 7:
+        flag_sub16 (oper1, oper2);
+        break;
+    default:
+        break;	/* to avoid compiler warnings */
+    }
+
+    if (reg < 7) {
+        writerm16 (rm, res16);
+    }
+}
+
+void opTest(){
+    /* 84 TEST Gb Eb */
+    modregrm();
+    oper1b = getreg8 (reg);
+    oper2b = readrm8 (rm);
+    flag_log8 (oper1b & oper2b);
+}
+
+void opTest_2()
+{
+    /* 85 TEST Gv Ev */
+    modregrm();
+    oper1 = getreg16 (reg);
+    oper2 = readrm16 (rm);
+    flag_log16 (oper1 & oper2);
+}
+
+void opXchg(){
+    /* 86 XCHG Gb Eb */
+    modregrm();
+    oper1b = getreg8 (reg);
+    putreg8 (reg, readrm8 (rm) );
+    writerm8 (rm, oper1b);
+}
+
+void opXchg_2(){
+    /* 87 XCHG Gv Ev */
+    modregrm();
+    oper1 = getreg16 (reg);
+    putreg16 (reg, readrm16 (rm) );
+    writerm16 (rm, oper1);
+}
+
+void opMov8(){
+    /* 88 MOV Eb Gb */
+    modregrm();
+    writerm8 (rm, getreg8 (reg) );
+}
+
+void opMov16(){
+    /* 89 MOV Ev Gv */
+    modregrm();
+    writerm16 (rm, getreg16 (reg) );
+}
+
+void opMovReg8(){
+    /* 8A MOV Gb Eb */
+    modregrm();
+    putreg8 (reg, readrm8 (rm) );
+}
+
+void opMovReg16(){
+    /* 8B MOV Gv Ev */
+    modregrm();
+    putreg16 (reg, readrm16 (rm) );
+}
+
+void opMov16_2(){
+    /* 8C MOV Ew Sw */
+    modregrm();
+    writerm16 (rm, getsegreg (reg) );
+}
+
+void opLea(){
+    /* 8D LEA Gv M */
+    modregrm();
+    getea (rm);
+    putreg16 (reg, ea - segbase (useseg) );
+}
+
+void opMov(){
+    /* 8E MOV Sw Ew */
+    modregrm();
+    putsegreg (reg, readrm16 (rm) );
+}
+
+void opPop_5(){
+    /* 8F POP Ev */
+    modregrm();
+    writerm16 (rm, pop() );
+}
+
+void opNop(){
+    /* 90 NOP */
+}
+
+void opXchgEcxEax(){
+    /* 91 XCHG eCX eAX */
+    oper1 = getreg16 (regcx);
+    putreg16 (regcx, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEdxEax(){
+    /* 92 XCHG eDX eAX */
+    oper1 = getreg16 (regdx);
+    putreg16 (regdx, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEbxEax(){
+    /* 93 XCHG eBX eAX */
+    oper1 = getreg16 (regbx);
+    putreg16 (regbx, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEspEax(){
+    /* 94 XCHG eSP eAX */
+    oper1 = getreg16 (regsp);
+    putreg16 (regsp, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEbpEax(){
+    /* 95 XCHG eBP eAX */
+    oper1 = getreg16 (regbp);
+    putreg16 (regbp, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEsiEax(){
+    /* 96 XCHG eSI eAX */
+    oper1 = getreg16 (regsi);
+    putreg16 (regsi, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opXchgEdiEax(){
+    /* 97 XCHG eDI eAX */
+    oper1 = getreg16 (regdi);
+    putreg16 (regdi, getreg16 (regax) );
+    putreg16 (regax, oper1);
+}
+
+void opCbw(){
+    /* 98 CBW */
+    if ( (regs.byteregs[regal] & 0x80) == 0x80) {
+        regs.byteregs[regah] = 0xFF;
+    }
+    else {
+        regs.byteregs[regah] = 0;
+    }
+}
+
+void opCwd(){
+    /* 99 CWD */
+    if ( (regs.byteregs[regah] & 0x80) == 0x80) {
+        putreg16 (regdx, 0xFFFF);
+    }
+    else {
+        putreg16 (regdx, 0);
+    }
+}
+
+void opCall(){
+    /* 9A CALL Ap */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    oper2 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    push (segregs[regcs]);
+    push (ip);
+    ip = oper1;
+    segregs[regcs] = oper2;
+}
+
+void opWait(){
+    /* 9B WAIT */
+}
+
+void opPushF(){
+    /* 9C PUSHF */
+    push (makeflagsword() | 0xF800);
+}
+
+void opPopF(){
+    /* 9D POPF */
+    temp16 = pop();
+    decodeflagsword (temp16);
+}
+
+void opSahF(){
+    /* 9E SAHF */
+    decodeflagsword ( (makeflagsword() & 0xFF00) | regs.byteregs[regah]);
+}
+
+void opLahF(){
+    /* 9F LAHF */
+    regs.byteregs[regah] = makeflagsword() & 0xFF;
+}
+
+void opMov_2(){
+    /* A0 MOV regs.byteregs[regal] Ob */
+    regs.byteregs[regal] = getmem8 (useseg, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opMovEaxOv(){
+    /* A1 MOV eAX Ov */
+    oper1 = getmem16 (useseg, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+    putreg16 (regax, oper1);
+}
+
+void opMovOb(){
+    /* A2 MOV Ob regs.byteregs[regal] */
+    putmem8 (useseg, getmem16 (segregs[regcs], ip), regs.byteregs[regal]);
+    StepIP (2);
+}
+
+void opMovOvEax(){
+    /* A3 MOV Ov eAX */
+    putmem16 (useseg, getmem16 (segregs[regcs], ip), getreg16 (regax) );
+    StepIP (2);
+}
+
+void opMovsb(){
+    /* A4 MOVSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem8 (segregs[reges], getreg16 (regdi), getmem8 (useseg, getreg16 (regsi) ) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 1);
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 1);
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opMovsw(){
+    /* A5 MOVSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem16 (segregs[reges], getreg16 (regdi), getmem16 (useseg, getreg16 (regsi) ) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 2);
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 2);
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opCmpsb(){
+    /* A6 CMPSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    oper1b = getmem8 (useseg, getreg16 (regsi) );
+    oper2b = getmem8 (segregs[reges], getreg16 (regdi) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 1);
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 1);
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    flag_sub8 (oper1b, oper2b);
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    if ( (reptype == 1) && !zf) {
+        return;
+    }
+    else if ( (reptype == 2) && (zf == 1) ) {
+        return;
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opCmpsw(){
+    /* A7 CMPSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    oper1 = getmem16 (useseg, getreg16 (regsi) );
+    oper2 = getmem16 (segregs[reges], getreg16 (regdi) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 2);
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 2);
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    flag_sub16 (oper1, oper2);
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    if ( (reptype == 1) && !zf) {
+        return;
+    }
+
+    if ( (reptype == 2) && (zf == 1) ) {
+        return;
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opTest_3(){
+    /* A8 TEST regs.byteregs[regal] Ib */
+    oper1b = regs.byteregs[regal];
+    oper2b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    flag_log8 (oper1b & oper2b);
+}
+
+void opTestEax(){
+    /* A9 TEST eAX Iv */
+    oper1 = getreg16 (regax);
+    oper2 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    flag_log16 (oper1 & oper2);
+}
+
+void opStosb(){
+    /* AA STOSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem8 (segregs[reges], getreg16 (regdi), regs.byteregs[regal]);
+    if (df) {
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void cmpStosw(){
+    /* AB STOSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    putmem16 (segregs[reges], getreg16 (regdi), getreg16 (regax) );
+    if (df) {
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opLodsb(){
+    /* AC LODSB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    regs.byteregs[regal] = getmem8 (useseg, getreg16 (regsi) );
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 1);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opLodsw(){
+    /* AD LODSW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    oper1 = getmem16 (useseg, getreg16 (regsi) );
+    putreg16 (regax, oper1);
+    if (df) {
+        putreg16 (regsi, getreg16 (regsi) - 2);
+    }
+    else {
+        putreg16 (regsi, getreg16 (regsi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opScasb(){
+    /* AE SCASB */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    oper1b = getmem8 (segregs[reges], getreg16 (regdi) );
+    oper2b = regs.byteregs[regal];
+    flag_sub8 (oper1b, oper2b);
+    if (df) {
+        putreg16 (regdi, getreg16 (regdi) - 1);
+    }
+    else {
+        putreg16 (regdi, getreg16 (regdi) + 1);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    if ( (reptype == 1) && !zf) {
+        return;
+    }
+    else if ( (reptype == 2) && (zf == 1) ) {
+        return;
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opScasw(){
+    /* AF SCASW */
+    if (reptype && (getreg16 (regcx) == 0) ) {
+        return;
+    }
+
+    oper1 = getmem16 (segregs[reges], getreg16 (regdi) );
+    oper2 = getreg16 (regax);
+    flag_sub16 (oper1, oper2);
+    if (df) {
+        putreg16 (regdi, getreg16 (regdi) - 2);
+    }
+    else {
+        putreg16 (regdi, getreg16 (regdi) + 2);
+    }
+
+    if (reptype) {
+        putreg16 (regcx, getreg16 (regcx) - 1);
+    }
+
+    if ( (reptype == 1) && !zf) {
+        return;
+    }
+    else if ( (reptype == 2) & (zf == 1) ) {
+        return;
+    }
+
+    totalexec++;
+    loopcount++;
+    if (!reptype) {
+        return;
+    }
+
+    ip = firstip;
+}
+
+void opMovAlIv(){
+    /* B0 MOV regs.byteregs[regal] Ib */
+    regs.byteregs[regal] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovClIb(){
+    /* B1 MOV regs.byteregs[regcl] Ib */
+    regs.byteregs[regcl] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovDlIb(){
+    /* B2 MOV regs.byteregs[regdl] Ib */
+    regs.byteregs[regdl] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovBlIb(){
+    /* B3 MOV regs.byteregs[regbl] Ib */
+    regs.byteregs[regbl] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovAhIb(){
+    /* B4 MOV regs.byteregs[regah] Ib */
+    regs.byteregs[regah] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovChIb(){
+    /* B5 MOV regs.byteregs[regch] Ib */
+    regs.byteregs[regch] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovDhIb(){
+    /* B6 MOV regs.byteregs[regdh] Ib */
+    regs.byteregs[regdh] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovBhIb(){
+    /* B7 MOV regs.byteregs[regbh] Ib */
+    regs.byteregs[regbh] = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+}
+
+void opMovEaxIv(){
+    /* B8 MOV eAX Iv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    putreg16 (regax, oper1);
+}
+
+void opMovEcxIv(){
+    /* B9 MOV eCX Iv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    putreg16 (regcx, oper1);
+}
+
+void opMovEdxIv(){
+    /* BA MOV eDX Iv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    putreg16 (regdx, oper1);
+}
+
+void opMovEbxIv(){
+    /* BB MOV eBX Iv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    putreg16 (regbx, oper1);
+}
+
+void opMovEspIv(){
+    /* BC MOV eSP Iv */
+    putreg16 (regsp, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opMovEbpIv(){
+    /* BD MOV eBP Iv */
+    putreg16 (regbp, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opMovEsiIv(){
+    /* BE MOV eSI Iv */
+    putreg16 (regsi, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opMovEdiIv(){
+    /* BF MOV eDI Iv */
+    putreg16 (regdi, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+
 void initOpcodeTable() {
     opcodeTable[0x00] = &opAdd8;
     opcodeTable[0x01] = &opAdd16;
@@ -1868,6 +3230,7 @@ void initOpcodeTable() {
     opcodeTable[0x03] = &opAdd16_2;
     opcodeTable[0x04] = &opAdd8_3;
     opcodeTable[0x05] = &opAdd16_3;
+
     opcodeTable[0x06] = &opPush;
     opcodeTable[0x07] = &opPop;
 
@@ -1877,6 +3240,7 @@ void initOpcodeTable() {
     opcodeTable[0x0B] = &opOr16_2;
     opcodeTable[0x0C] = &opOr8_3;
     opcodeTable[0x0D] = &opOr16_3;
+
     opcodeTable[0x0E] = &opPush_2;
     opcodeTable[0x0F] = &opPop_2;
 
@@ -1886,6 +3250,7 @@ void initOpcodeTable() {
     opcodeTable[0x13] = &opAdc16_2;
     opcodeTable[0x14] = &opAdc8_3;
     opcodeTable[0x15] = &opAdc16_3;
+
     opcodeTable[0x16] = &opPush_3;
     opcodeTable[0x17] = &opPop_3;
 
@@ -1895,6 +3260,7 @@ void initOpcodeTable() {
     opcodeTable[0x1B] = &opSbb16_2;
     opcodeTable[0x1C] = &opSbb8_3;
     opcodeTable[0x1D] = &opSbb16_3;
+
     opcodeTable[0x1E] = &opPush_4;
     opcodeTable[0x1F] = &opPop_4;
 
@@ -1904,6 +3270,7 @@ void initOpcodeTable() {
     opcodeTable[0x23] = &opAnd16_2;
     opcodeTable[0x24] = &opAnd8_3;
     opcodeTable[0x25] = &opAnd16_3;
+
     opcodeTable[0x27] = &opDaa;
 
     opcodeTable[0x28] = &opSub8;
@@ -1912,6 +3279,7 @@ void initOpcodeTable() {
     opcodeTable[0x2B] = &opSub16_2;
     opcodeTable[0x2C] = &opSub8_3;
     opcodeTable[0x2D] = &opSub16_3;
+
     opcodeTable[0x2F] = &opDas;
 
     opcodeTable[0x30] = &opXor8;
@@ -1920,6 +3288,7 @@ void initOpcodeTable() {
     opcodeTable[0x33] = &opXor16_2;
     opcodeTable[0x34] = &opXor8_3;
     opcodeTable[0x35] = &opXor16_3;
+
     opcodeTable[0x37] = &opAaa;
 
     opcodeTable[0x38] = &opCmp8;
@@ -1928,6 +3297,144 @@ void initOpcodeTable() {
     opcodeTable[0x3B] = &opCmp16_2;
     opcodeTable[0x3C] = &opCmp8_3;
     opcodeTable[0x3D] = &opCmp16_3;
+
+    opcodeTable[0x3F] = &opAas;
+
+    opcodeTable[0x40] = &opIncEax;
+    opcodeTable[0x41] = &opIncEcx;
+    opcodeTable[0x42] = &opIncEdx;
+    opcodeTable[0x43] = &opIncEbx;
+    opcodeTable[0x44] = &opIncEsp;
+    opcodeTable[0x45] = &opIncEbp;
+    opcodeTable[0x46] = &opIncEsi;
+    opcodeTable[0x47] = &opIncEdi;
+
+    opcodeTable[0x48] = &opDecEax;
+    opcodeTable[0x49] = &opDecEcx;
+    opcodeTable[0x4A] = &opDecEdx;
+    opcodeTable[0x4B] = &opDecEbx;
+    opcodeTable[0x4C] = &opDecEsp;
+    opcodeTable[0x4D] = &opDecEbp;
+    opcodeTable[0x4E] = &opDecEsi;
+    opcodeTable[0x4F] = &opDecEdi;
+
+    opcodeTable[0x50] = &opPushEax;
+    opcodeTable[0x51] = &opPushEcx;
+    opcodeTable[0x52] = &opPushEdx;
+    opcodeTable[0x53] = &opPushEbx;
+    opcodeTable[0x54] = &opPushEsp;
+    opcodeTable[0x55] = &opPushEbp;
+    opcodeTable[0x56] = &opPushEsi;
+    opcodeTable[0x57] = &opPushEdi;
+
+    opcodeTable[0x58] = &opPopEax;
+    opcodeTable[0x59] = &opPopEcx;
+    opcodeTable[0x5A] = &opPopEdx;
+    opcodeTable[0x5B] = &opPopEbx;
+    opcodeTable[0x5C] = &opPopEsp;
+    opcodeTable[0x5D] = &opPopEbp;
+    opcodeTable[0x5E] = &opPopEsi;
+    opcodeTable[0x5F] = &opPopEdi;
+
+    opcodeTable[0x60] = &opPushA;
+    opcodeTable[0x61] = &opPopA;
+
+    opcodeTable[0x62] = &opBound;
+    opcodeTable[0x68] = &opPushIv;
+    opcodeTable[0x69] = &opImul;
+    opcodeTable[0x6A] = &opPushIb;
+    opcodeTable[0x6B] = &opImul_2;
+    opcodeTable[0x6C] = &opInsb;
+    opcodeTable[0x6D] = &opInsw;
+    opcodeTable[0x6E] = &opOutsb;
+    opcodeTable[0x6F] = &opOutsw;
+
+    opcodeTable[0x70] = &opJo;
+    opcodeTable[0x71] = &opJno;
+    opcodeTable[0x72] = &opJb;
+    opcodeTable[0x73] = &opJnb;
+    opcodeTable[0x74] = &opJz;
+    opcodeTable[0x75] = &opJnz;
+    opcodeTable[0x76] = &opJbe;
+    opcodeTable[0x77] = &opJa;
+    opcodeTable[0x78] = &opJs;
+    opcodeTable[0x79] = &opJns;
+    opcodeTable[0x7A] = &opJpe;
+    opcodeTable[0x7B] = &opJpo;
+    opcodeTable[0x7C] = &opJl;
+    opcodeTable[0x7D] = &opJge;
+    opcodeTable[0x7E] = &opJle;
+    opcodeTable[0x7F] = &opJg;
+
+    opcodeTable[0x80] = &opGrp1;
+    opcodeTable[0x81] = &opGrp1_2;
+    opcodeTable[0x82] = &opGrp1;
+    opcodeTable[0x83] = &opGrp1_2;
+    opcodeTable[0x84] = &opTest;
+    opcodeTable[0x85] = &opTest_2;
+    opcodeTable[0x86] = &opXchg;
+    opcodeTable[0x87] = &opXchg_2;
+
+    opcodeTable[0x88] = &opMov8;
+    opcodeTable[0x89] = &opMov16;
+    opcodeTable[0x8A] = &opMovReg8;
+    opcodeTable[0x8B] = &opMovReg16;
+    opcodeTable[0x8C] = &opMov16_2;
+    opcodeTable[0x8D] = &opLea;
+    opcodeTable[0x8E] = &opMov;
+    opcodeTable[0x8F] = &opPop_5;
+    opcodeTable[0x90] = &opNop;
+
+    opcodeTable[0x91] = &opXchgEcxEax;
+    opcodeTable[0x92] = &opXchgEdxEax;
+    opcodeTable[0x93] = &opXchgEbxEax;
+    opcodeTable[0x94] = &opXchgEspEax;
+    opcodeTable[0x95] = &opXchgEbpEax;
+    opcodeTable[0x96] = &opXchgEsiEax;
+    opcodeTable[0x97] = &opXchgEdiEax;
+
+    opcodeTable[0x98] = &opCbw;
+    opcodeTable[0x99] = &opCwd;
+    opcodeTable[0x9A] = &opCall;
+    opcodeTable[0x9B] = &opWait;
+    opcodeTable[0x9C] = &opPushF;
+    opcodeTable[0x9D] = &opPopF;
+    opcodeTable[0x9E] = &opSahF;
+    opcodeTable[0x9F] = &opLahF;
+    opcodeTable[0xA0] = &opMov_2;
+    opcodeTable[0xA1] = &opMovEaxOv;
+    opcodeTable[0xA2] = &opMovOb;
+    opcodeTable[0xA3] = &opMovOvEax;
+    opcodeTable[0xA4] = &opMovsb;
+    opcodeTable[0xA5] = &opMovsw;
+
+    opcodeTable[0xA6] = &opCmpsb;
+    opcodeTable[0xA7] = &opCmpsw;
+    opcodeTable[0xA8] = &opTest_3;
+    opcodeTable[0xA9] = &opTestEax;
+    opcodeTable[0xAA] = &opStosb;
+    opcodeTable[0xAB] = &cmpStosw;
+    opcodeTable[0xAC] = &opLodsb;
+    opcodeTable[0xAD] = &opLodsw;
+    opcodeTable[0xAE] = &opScasb;
+    opcodeTable[0xAF] = &opScasw;
+
+    opcodeTable[0xB0] = &opMovAlIv;
+    opcodeTable[0xB1] = &opMovClIb;
+    opcodeTable[0xB2] = &opMovDlIb;
+    opcodeTable[0xB3] = &opMovBlIb;
+    opcodeTable[0xB4] = &opMovAhIb;
+    opcodeTable[0xB5] = &opMovChIb;
+    opcodeTable[0xB6] = &opMovDhIb;
+    opcodeTable[0xB7] = &opMovBhIb;
+    opcodeTable[0xB8] = &opMovEaxIv;
+    opcodeTable[0xB9] = &opMovEcxIv;
+    opcodeTable[0xBA] = &opMovEdxIv;
+    opcodeTable[0xBB] = &opMovEbxIv;
+    opcodeTable[0xBC] = &opMovEspIv;
+    opcodeTable[0xBD] = &opMovEbpIv;
+    opcodeTable[0xBE] = &opMovEsiIv;
+    opcodeTable[0xBF] = &opMovEdiIv;
 }
 
 void initLookupTables() {
@@ -1935,12 +3442,6 @@ void initLookupTables() {
 }
 
 void exec86 (uint32_t execloops) {
-
-    static uint32_t loopcount;
-    static uint8_t	docontinue;
-    static uint16_t firstip;
-    static uint16_t trap_toggle = 0;
-
     counterticks = (uint64_t) ( (double) timerfreq / (double) 65536.0);
 
     for (loopcount = 0; loopcount < execloops; loopcount++) {
@@ -2016,1249 +3517,11 @@ void exec86 (uint32_t execloops) {
 
         totalexec++;
 
-
         /*todo remove*/
         if(opcodeTable[opcode] != NULL) {
             opcodeTable[opcode]();
         }
         switch (opcode) {
-
-        case 0x3F:	/* 3F AAS ASCII */
-            if ( ( (regs.byteregs[regal] & 0xF) > 9) || (af == 1) ) {
-                regs.byteregs[regal] = regs.byteregs[regal] - 6;
-                regs.byteregs[regah] = regs.byteregs[regah] - 1;
-                af = 1;
-                cf = 1;
-            }
-            else {
-                af = 0;
-                cf = 0;
-            }
-
-            regs.byteregs[regal] = regs.byteregs[regal] & 0xF;
-            break;
-
-        case 0x40:	/* 40 INC eAX */
-            oldcf = cf;
-            oper1 = getreg16 (regax);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regax, res16);
-            break;
-
-        case 0x41:	/* 41 INC eCX */
-            oldcf = cf;
-            oper1 = getreg16 (regcx);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regcx, res16);
-            break;
-
-        case 0x42:	/* 42 INC eDX */
-            oldcf = cf;
-            oper1 = getreg16 (regdx);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regdx, res16);
-            break;
-
-        case 0x43:	/* 43 INC eBX */
-            oldcf = cf;
-            oper1 = getreg16 (regbx);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regbx, res16);
-            break;
-
-        case 0x44:	/* 44 INC eSP */
-            oldcf = cf;
-            oper1 = getreg16 (regsp);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regsp, res16);
-            break;
-
-        case 0x45:	/* 45 INC eBP */
-            oldcf = cf;
-            oper1 = getreg16 (regbp);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regbp, res16);
-            break;
-
-        case 0x46:	/* 46 INC eSI */
-            oldcf = cf;
-            oper1 = getreg16 (regsi);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regsi, res16);
-            break;
-
-        case 0x47:	/* 47 INC eDI */
-            oldcf = cf;
-            oper1 = getreg16 (regdi);
-            oper2 = 1;
-            op_add16();
-            cf = oldcf;
-            putreg16 (regdi, res16);
-            break;
-
-        case 0x48:	/* 48 DEC eAX */
-            oldcf = cf;
-            oper1 = getreg16 (regax);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regax, res16);
-            break;
-
-        case 0x49:	/* 49 DEC eCX */
-            oldcf = cf;
-            oper1 = getreg16 (regcx);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regcx, res16);
-            break;
-
-        case 0x4A:	/* 4A DEC eDX */
-            oldcf = cf;
-            oper1 = getreg16 (regdx);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regdx, res16);
-            break;
-
-        case 0x4B:	/* 4B DEC eBX */
-            oldcf = cf;
-            oper1 = getreg16 (regbx);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regbx, res16);
-            break;
-
-        case 0x4C:	/* 4C DEC eSP */
-            oldcf = cf;
-            oper1 = getreg16 (regsp);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regsp, res16);
-            break;
-
-        case 0x4D:	/* 4D DEC eBP */
-            oldcf = cf;
-            oper1 = getreg16 (regbp);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regbp, res16);
-            break;
-
-        case 0x4E:	/* 4E DEC eSI */
-            oldcf = cf;
-            oper1 = getreg16 (regsi);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regsi, res16);
-            break;
-
-        case 0x4F:	/* 4F DEC eDI */
-            oldcf = cf;
-            oper1 = getreg16 (regdi);
-            oper2 = 1;
-            op_sub16();
-            cf = oldcf;
-            putreg16 (regdi, res16);
-            break;
-
-        case 0x50:	/* 50 PUSH eAX */
-            push (getreg16 (regax) );
-            break;
-
-        case 0x51:	/* 51 PUSH eCX */
-            push (getreg16 (regcx) );
-            break;
-
-        case 0x52:	/* 52 PUSH eDX */
-            push (getreg16 (regdx) );
-            break;
-
-        case 0x53:	/* 53 PUSH eBX */
-            push (getreg16 (regbx) );
-            break;
-
-        case 0x54:	/* 54 PUSH eSP */
-            push (getreg16 (regsp) - 2);
-            break;
-
-        case 0x55:	/* 55 PUSH eBP */
-            push (getreg16 (regbp) );
-            break;
-
-        case 0x56:	/* 56 PUSH eSI */
-            push (getreg16 (regsi) );
-            break;
-
-        case 0x57:	/* 57 PUSH eDI */
-            push (getreg16 (regdi) );
-            break;
-
-        case 0x58:	/* 58 POP eAX */
-            putreg16 (regax, pop() );
-            break;
-
-        case 0x59:	/* 59 POP eCX */
-            putreg16 (regcx, pop() );
-            break;
-
-        case 0x5A:	/* 5A POP eDX */
-            putreg16 (regdx, pop() );
-            break;
-
-        case 0x5B:	/* 5B POP eBX */
-            putreg16 (regbx, pop() );
-            break;
-
-        case 0x5C:	/* 5C POP eSP */
-            putreg16 (regsp, pop() );
-            break;
-
-        case 0x5D:	/* 5D POP eBP */
-            putreg16 (regbp, pop() );
-            break;
-
-        case 0x5E:	/* 5E POP eSI */
-            putreg16 (regsi, pop() );
-            break;
-
-        case 0x5F:	/* 5F POP eDI */
-            putreg16 (regdi, pop() );
-            break;
-
-#ifdef CPU_V20
-        case 0x60:	/* 60 PUSHA (80186+) */
-            oldsp = getreg16 (regsp);
-            push (getreg16 (regax) );
-            push (getreg16 (regcx) );
-            push (getreg16 (regdx) );
-            push (getreg16 (regbx) );
-            push (oldsp);
-            push (getreg16 (regbp) );
-            push (getreg16 (regsi) );
-            push (getreg16 (regdi) );
-            break;
-
-        case 0x61:	/* 61 POPA (80186+) */
-            putreg16 (regdi, pop() );
-            putreg16 (regsi, pop() );
-            putreg16 (regbp, pop() );
-            dummy = pop();
-            putreg16 (regbx, pop() );
-            putreg16 (regdx, pop() );
-            putreg16 (regcx, pop() );
-            putreg16 (regax, pop() );
-            break;
-
-        case 0x62: /* 62 BOUND Gv, Ev (80186+) */
-            modregrm();
-            getea (rm);
-            if (signext32 (getreg16 (reg) ) < signext32 ( getmem16 (ea >> 4, ea & 15) ) ) {
-                intcall86 (5); //bounds check exception
-            }
-            else {
-                ea += 2;
-                if (signext32 (getreg16 (reg) ) > signext32 ( getmem16 (ea >> 4, ea & 15) ) ) {
-                    intcall86(5); //bounds check exception
-                }
-            }
-            break;
-
-        case 0x68:	/* 68 PUSH Iv (80186+) */
-            push (getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0x69:	/* 69 IMUL Gv Ev Iv (80186+) */
-            modregrm();
-            temp1 = readrm16 (rm);
-            temp2 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            if ( (temp1 & 0x8000L) == 0x8000L) {
-                temp1 = temp1 | 0xFFFF0000L;
-            }
-
-            if ( (temp2 & 0x8000L) == 0x8000L) {
-                temp2 = temp2 | 0xFFFF0000L;
-            }
-
-            temp3 = temp1 * temp2;
-            putreg16 (reg, temp3 & 0xFFFFL);
-            if (temp3 & 0xFFFF0000L) {
-                cf = 1;
-                of = 1;
-            }
-            else {
-                cf = 0;
-                of = 0;
-            }
-            break;
-
-        case 0x6A:	/* 6A PUSH Ib (80186+) */
-            push (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            break;
-
-        case 0x6B:	/* 6B IMUL Gv Eb Ib (80186+) */
-            modregrm();
-            temp1 = readrm16 (rm);
-            temp2 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if ( (temp1 & 0x8000L) == 0x8000L) {
-                temp1 = temp1 | 0xFFFF0000L;
-            }
-
-            if ( (temp2 & 0x8000L) == 0x8000L) {
-                temp2 = temp2 | 0xFFFF0000L;
-            }
-
-            temp3 = temp1 * temp2;
-            putreg16 (reg, temp3 & 0xFFFFL);
-            if (temp3 & 0xFFFF0000L) {
-                cf = 1;
-                of = 1;
-            }
-            else {
-                cf = 0;
-                of = 0;
-            }
-            break;
-
-        case 0x6C:	/* 6E INSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem8 (useseg, getreg16 (regsi) , portin (regs.wordregs[regdx]) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 1);
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 1);
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0x6D:	/* 6F INSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem16 (useseg, getreg16 (regsi) , portin16 (regs.wordregs[regdx]) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 2);
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 2);
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0x6E:	/* 6E OUTSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            portout (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 1);
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 1);
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0x6F:	/* 6F OUTSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            portout16 (regs.wordregs[regdx], getmem16 (useseg, getreg16 (regsi) ) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 2);
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 2);
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-#endif
-
-        case 0x70:	/* 70 JO Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (of) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x71:	/* 71 JNO Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!of) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x72:	/* 72 JB Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (cf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x73:	/* 73 JNB Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!cf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x74:	/* 74 JZ Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x75:	/* 75 JNZ Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x76:	/* 76 JBE Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (cf || zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x77:	/* 77 JA Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!cf && !zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x78:	/* 78 JS Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (sf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x79:	/* 79 JNS Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!sf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7A:	/* 7A JPE Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (pf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7B:	/* 7B JPO Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!pf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7C:	/* 7C JL Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (sf != of) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7D:	/* 7D JGE Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (sf == of) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7E:	/* 7E JLE Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if ( (sf != of) || zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x7F:	/* 7F JG Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (!zf && (sf == of) ) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0x80:
-        case 0x82:	/* 80/82 GRP1 Eb Ib */
-            modregrm();
-            oper1b = readrm8 (rm);
-            oper2b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            switch (reg) {
-            case 0:
-                op_add8();
-                break;
-            case 1:
-                op_or8();
-                break;
-            case 2:
-                op_adc8();
-                break;
-            case 3:
-                op_sbb8();
-                break;
-            case 4:
-                op_and8();
-                break;
-            case 5:
-                op_sub8();
-                break;
-            case 6:
-                op_xor8();
-                break;
-            case 7:
-                flag_sub8 (oper1b, oper2b);
-                break;
-            default:
-                break;	/* to avoid compiler warnings */
-            }
-
-            if (reg < 7) {
-                writerm8 (rm, res8);
-            }
-            break;
-
-        case 0x81:	/* 81 GRP1 Ev Iv */
-        case 0x83:	/* 83 GRP1 Ev Ib */
-            modregrm();
-            oper1 = readrm16 (rm);
-            if (opcode == 0x81) {
-                oper2 = getmem16 (segregs[regcs], ip);
-                StepIP (2);
-            }
-            else {
-                oper2 = signext (getmem8 (segregs[regcs], ip) );
-                StepIP (1);
-            }
-
-            switch (reg) {
-            case 0:
-                op_add16();
-                break;
-            case 1:
-                op_or16();
-                break;
-            case 2:
-                op_adc16();
-                break;
-            case 3:
-                op_sbb16();
-                break;
-            case 4:
-                op_and16();
-                break;
-            case 5:
-                op_sub16();
-                break;
-            case 6:
-                op_xor16();
-                break;
-            case 7:
-                flag_sub16 (oper1, oper2);
-                break;
-            default:
-                break;	/* to avoid compiler warnings */
-            }
-
-            if (reg < 7) {
-                writerm16 (rm, res16);
-            }
-            break;
-
-        case 0x84:	/* 84 TEST Gb Eb */
-            modregrm();
-            oper1b = getreg8 (reg);
-            oper2b = readrm8 (rm);
-            flag_log8 (oper1b & oper2b);
-            break;
-
-        case 0x85:	/* 85 TEST Gv Ev */
-            modregrm();
-            oper1 = getreg16 (reg);
-            oper2 = readrm16 (rm);
-            flag_log16 (oper1 & oper2);
-            break;
-
-        case 0x86:	/* 86 XCHG Gb Eb */
-            modregrm();
-            oper1b = getreg8 (reg);
-            putreg8 (reg, readrm8 (rm) );
-            writerm8 (rm, oper1b);
-            break;
-
-        case 0x87:	/* 87 XCHG Gv Ev */
-            modregrm();
-            oper1 = getreg16 (reg);
-            putreg16 (reg, readrm16 (rm) );
-            writerm16 (rm, oper1);
-            break;
-
-        case 0x88:	/* 88 MOV Eb Gb */
-            modregrm();
-            writerm8 (rm, getreg8 (reg) );
-            break;
-
-        case 0x89:	/* 89 MOV Ev Gv */
-            modregrm();
-            writerm16 (rm, getreg16 (reg) );
-            break;
-
-        case 0x8A:	/* 8A MOV Gb Eb */
-            modregrm();
-            putreg8 (reg, readrm8 (rm) );
-            break;
-
-        case 0x8B:	/* 8B MOV Gv Ev */
-            modregrm();
-            putreg16 (reg, readrm16 (rm) );
-            break;
-
-        case 0x8C:	/* 8C MOV Ew Sw */
-            modregrm();
-            writerm16 (rm, getsegreg (reg) );
-            break;
-
-        case 0x8D:	/* 8D LEA Gv M */
-            modregrm();
-            getea (rm);
-            putreg16 (reg, ea - segbase (useseg) );
-            break;
-
-        case 0x8E:	/* 8E MOV Sw Ew */
-            modregrm();
-            putsegreg (reg, readrm16 (rm) );
-            break;
-
-        case 0x8F:	/* 8F POP Ev */
-            modregrm();
-            writerm16 (rm, pop() );
-            break;
-
-        case 0x90:	/* 90 NOP */
-            break;
-
-        case 0x91:	/* 91 XCHG eCX eAX */
-            oper1 = getreg16 (regcx);
-            putreg16 (regcx, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x92:	/* 92 XCHG eDX eAX */
-            oper1 = getreg16 (regdx);
-            putreg16 (regdx, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x93:	/* 93 XCHG eBX eAX */
-            oper1 = getreg16 (regbx);
-            putreg16 (regbx, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x94:	/* 94 XCHG eSP eAX */
-            oper1 = getreg16 (regsp);
-            putreg16 (regsp, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x95:	/* 95 XCHG eBP eAX */
-            oper1 = getreg16 (regbp);
-            putreg16 (regbp, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x96:	/* 96 XCHG eSI eAX */
-            oper1 = getreg16 (regsi);
-            putreg16 (regsi, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x97:	/* 97 XCHG eDI eAX */
-            oper1 = getreg16 (regdi);
-            putreg16 (regdi, getreg16 (regax) );
-            putreg16 (regax, oper1);
-            break;
-
-        case 0x98:	/* 98 CBW */
-            if ( (regs.byteregs[regal] & 0x80) == 0x80) {
-                regs.byteregs[regah] = 0xFF;
-            }
-            else {
-                regs.byteregs[regah] = 0;
-            }
-            break;
-
-        case 0x99:	/* 99 CWD */
-            if ( (regs.byteregs[regah] & 0x80) == 0x80) {
-                putreg16 (regdx, 0xFFFF);
-            }
-            else {
-                putreg16 (regdx, 0);
-            }
-            break;
-
-        case 0x9A:	/* 9A CALL Ap */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            oper2 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            push (segregs[regcs]);
-            push (ip);
-            ip = oper1;
-            segregs[regcs] = oper2;
-            break;
-
-        case 0x9B:	/* 9B WAIT */
-            break;
-
-        case 0x9C:	/* 9C PUSHF */
-            push (makeflagsword() | 0xF800);
-            break;
-
-        case 0x9D:	/* 9D POPF */
-            temp16 = pop();
-            decodeflagsword (temp16);
-            break;
-
-        case 0x9E:	/* 9E SAHF */
-            decodeflagsword ( (makeflagsword() & 0xFF00) | regs.byteregs[regah]);
-            break;
-
-        case 0x9F:	/* 9F LAHF */
-            regs.byteregs[regah] = makeflagsword() & 0xFF;
-            break;
-
-        case 0xA0:	/* A0 MOV regs.byteregs[regal] Ob */
-            regs.byteregs[regal] = getmem8 (useseg, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0xA1:	/* A1 MOV eAX Ov */
-            oper1 = getmem16 (useseg, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            putreg16 (regax, oper1);
-            break;
-
-        case 0xA2:	/* A2 MOV Ob regs.byteregs[regal] */
-            putmem8 (useseg, getmem16 (segregs[regcs], ip), regs.byteregs[regal]);
-            StepIP (2);
-            break;
-
-        case 0xA3:	/* A3 MOV Ov eAX */
-            putmem16 (useseg, getmem16 (segregs[regcs], ip), getreg16 (regax) );
-            StepIP (2);
-            break;
-
-        case 0xA4:	/* A4 MOVSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem8 (segregs[reges], getreg16 (regdi), getmem8 (useseg, getreg16 (regsi) ) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 1);
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 1);
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xA5:	/* A5 MOVSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem16 (segregs[reges], getreg16 (regdi), getmem16 (useseg, getreg16 (regsi) ) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 2);
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 2);
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xA6:	/* A6 CMPSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            oper1b = getmem8 (useseg, getreg16 (regsi) );
-            oper2b = getmem8 (segregs[reges], getreg16 (regdi) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 1);
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 1);
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            flag_sub8 (oper1b, oper2b);
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            if ( (reptype == 1) && !zf) {
-                break;
-            }
-            else if ( (reptype == 2) && (zf == 1) ) {
-                break;
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xA7:	/* A7 CMPSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            oper1 = getmem16 (useseg, getreg16 (regsi) );
-            oper2 = getmem16 (segregs[reges], getreg16 (regdi) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 2);
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 2);
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            flag_sub16 (oper1, oper2);
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            if ( (reptype == 1) && !zf) {
-                break;
-            }
-
-            if ( (reptype == 2) && (zf == 1) ) {
-                break;
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xA8:	/* A8 TEST regs.byteregs[regal] Ib */
-            oper1b = regs.byteregs[regal];
-            oper2b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            flag_log8 (oper1b & oper2b);
-            break;
-
-        case 0xA9:	/* A9 TEST eAX Iv */
-            oper1 = getreg16 (regax);
-            oper2 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            flag_log16 (oper1 & oper2);
-            break;
-
-        case 0xAA:	/* AA STOSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem8 (segregs[reges], getreg16 (regdi), regs.byteregs[regal]);
-            if (df) {
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xAB:	/* AB STOSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            putmem16 (segregs[reges], getreg16 (regdi), getreg16 (regax) );
-            if (df) {
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xAC:	/* AC LODSB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            regs.byteregs[regal] = getmem8 (useseg, getreg16 (regsi) );
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 1);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xAD:	/* AD LODSW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            oper1 = getmem16 (useseg, getreg16 (regsi) );
-            putreg16 (regax, oper1);
-            if (df) {
-                putreg16 (regsi, getreg16 (regsi) - 2);
-            }
-            else {
-                putreg16 (regsi, getreg16 (regsi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xAE:	/* AE SCASB */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            oper1b = getmem8 (segregs[reges], getreg16 (regdi) );
-            oper2b = regs.byteregs[regal];
-            flag_sub8 (oper1b, oper2b);
-            if (df) {
-                putreg16 (regdi, getreg16 (regdi) - 1);
-            }
-            else {
-                putreg16 (regdi, getreg16 (regdi) + 1);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            if ( (reptype == 1) && !zf) {
-                break;
-            }
-            else if ( (reptype == 2) && (zf == 1) ) {
-                break;
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xAF:	/* AF SCASW */
-            if (reptype && (getreg16 (regcx) == 0) ) {
-                break;
-            }
-
-            oper1 = getmem16 (segregs[reges], getreg16 (regdi) );
-            oper2 = getreg16 (regax);
-            flag_sub16 (oper1, oper2);
-            if (df) {
-                putreg16 (regdi, getreg16 (regdi) - 2);
-            }
-            else {
-                putreg16 (regdi, getreg16 (regdi) + 2);
-            }
-
-            if (reptype) {
-                putreg16 (regcx, getreg16 (regcx) - 1);
-            }
-
-            if ( (reptype == 1) && !zf) {
-                break;
-            }
-            else if ( (reptype == 2) & (zf == 1) ) {
-                break;
-            }
-
-            totalexec++;
-            loopcount++;
-            if (!reptype) {
-                break;
-            }
-
-            ip = firstip;
-            break;
-
-        case 0xB0:	/* B0 MOV regs.byteregs[regal] Ib */
-            regs.byteregs[regal] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB1:	/* B1 MOV regs.byteregs[regcl] Ib */
-            regs.byteregs[regcl] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB2:	/* B2 MOV regs.byteregs[regdl] Ib */
-            regs.byteregs[regdl] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB3:	/* B3 MOV regs.byteregs[regbl] Ib */
-            regs.byteregs[regbl] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB4:	/* B4 MOV regs.byteregs[regah] Ib */
-            regs.byteregs[regah] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB5:	/* B5 MOV regs.byteregs[regch] Ib */
-            regs.byteregs[regch] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB6:	/* B6 MOV regs.byteregs[regdh] Ib */
-            regs.byteregs[regdh] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB7:	/* B7 MOV regs.byteregs[regbh] Ib */
-            regs.byteregs[regbh] = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            break;
-
-        case 0xB8:	/* B8 MOV eAX Iv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            putreg16 (regax, oper1);
-            break;
-
-        case 0xB9:	/* B9 MOV eCX Iv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            putreg16 (regcx, oper1);
-            break;
-
-        case 0xBA:	/* BA MOV eDX Iv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            putreg16 (regdx, oper1);
-            break;
-
-        case 0xBB:	/* BB MOV eBX Iv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            putreg16 (regbx, oper1);
-            break;
-
-        case 0xBC:	/* BC MOV eSP Iv */
-            putreg16 (regsp, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0xBD:	/* BD MOV eBP Iv */
-            putreg16 (regbp, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0xBE:	/* BE MOV eSI Iv */
-            putreg16 (regsi, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0xBF:	/* BF MOV eDI Iv */
-            putreg16 (regdi, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
 
         case 0xC0:	/* C0 GRP2 byte imm8 (80186+) */
             modregrm();
@@ -3632,17 +3895,6 @@ void exec86 (uint32_t execloops) {
             modregrm();
             oper1 = readrm16 (rm);
             op_grp5();
-            break;
-
-        default:
-#ifndef EM
-            intcall86 (6);
-            /* trip invalid opcode exception (this occurs on the 80186+, 8086/8088 CPUs treat them as NOPs. */
-            /* technically they aren't exactly like NOPs in most cases, but for our pursoses, that's accurate enough. */
-            if (verbose) {
-                printf ("Illegal opcode: %02X @ %04X:%04X\n", opcode, savecs, saveip);
-            }
-#endif
             break;
         }
 

@@ -171,12 +171,20 @@ void *VideoThread (void *dummy) {
 void doscrmodechange() {
     MutexLock (screenmutex);
     if (scrmodechange) {
-        if (screen != NULL) SDL_FreeSurface (screen);
-        if (constantw && constanth) screen = SDL_SetVideoMode (constantw, constanth, 32, SDL_HWSURFACE | usefullscreen);
-        else if (noscale) screen = SDL_SetVideoMode (nw, nh, 32, SDL_HWSURFACE | usefullscreen);
-        else {
-            if ( (nw >= 640) || (nh >= 400) ) screen = SDL_SetVideoMode (nw, nh, 32, SDL_HWSURFACE | usefullscreen);
-            else screen = SDL_SetVideoMode (640, 400, 32, SDL_HWSURFACE | usefullscreen);
+        if (screen != NULL) {
+            SDL_FreeSurface (screen);
+        }
+        if (constantw && constanth) {
+            screen = SDL_SetVideoMode (constantw, constanth, 32, SDL_HWSURFACE | usefullscreen);
+        } else if (noscale) {
+            screen = SDL_SetVideoMode (nw, nh, 32, SDL_HWSURFACE | usefullscreen);
+        } else {
+            if ( (nw >= 640) || (nh >= 400) ) {
+                screen = SDL_SetVideoMode (nw, nh, 32, SDL_HWSURFACE | usefullscreen);
+            }
+            else {
+                screen = SDL_SetVideoMode (640, 400, 32, SDL_HWSURFACE | usefullscreen);
+            }
         }
         if (usefullscreen) SDL_WM_GrabInput (SDL_GRAB_ON); //always have mouse grab turned on for full screen mode
         else SDL_WM_GrabInput (usegrabmode);

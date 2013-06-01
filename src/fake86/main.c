@@ -38,7 +38,7 @@ CRITICAL_SECTION screenmutex;
 pthread_t consolethread;
 #endif
 
-const uint8_t *build = "Fake86JS 0.01";
+const char* *build = "Fake86JS 0.01";
 const int burstLegth = BURST_LENGTH;
 
 extern uint8_t RAM[0x100000], readonly[0x100000];
@@ -48,7 +48,7 @@ extern void reset86();
 extern void exec86 (uint32_t execloops);
 extern uint8_t initscreen (uint8_t *ver);
 extern void VideoThread();
-extern doscrmodechange();
+extern void doscrmodechange();
 extern void handleinput();
 
 extern uint8_t scrmodechange, doaudio;
