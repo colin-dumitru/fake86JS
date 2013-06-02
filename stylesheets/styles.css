@@ -849,3 +849,56 @@ section #title .credits.right {
     display: none;
   }
 }
+
+#loadContainer{
+    width: 100px;
+    margin: 0 auto;
+}
+
+#loadButton{
+    width: 100px;
+    height: 50px;
+    font-size: 1.5em;
+    background: #31695a;
+    border: 1px solid #2c5849;
+    border-radius: 2px;
+    color: white;
+
+    -webkit-transition: all 0.4s ease;
+    transition: all 0.4s ease;
+}
+
+#warningContainer{
+    position: relative;
+    padding: 5px;
+    margin: 5px auto;
+    width: 400px;
+    background: #5e2b26;
+    border: 1px solid #a6a6a6;
+    box-shadow: 0px 0px 5px black;
+    border-radius: 2px;
+}
+
+#loadButton:hover{
+    width: 100px;
+    height: 50px;
+    font-size: 1.5em;
+    background: #3b8d7b;
+    border: 1px solid #2c5849;
+    border-radius: 2px;
+    color: white;
+    box-shadow: 0px 0px 5px black;
+}
+
+#exclamationMark{
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    font-size: 5em;
+    color: whitesmoke;
+}
+
+.mainContentExpanded{
+    width: 100%;
+    height: 100%;
+}
