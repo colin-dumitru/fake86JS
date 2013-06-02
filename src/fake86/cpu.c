@@ -3222,6 +3222,419 @@ void opMovEdiIv(){
     StepIP (2);
 }
 
+void opGrp2_8(){
+    /* C0 GRP2 byte imm8 (80186+) */
+    modregrm();
+    oper1b = readrm8 (rm);
+    oper2b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    writerm8 (rm, op_grp2_8 (oper2b) );
+}
+
+void opGrp2_16(){
+    /* C1 GRP2 word imm8 (80186+) */
+    modregrm();
+    oper1 = readrm16 (rm);
+    oper2 = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    writerm16 (rm, op_grp2_16 ( (uint8_t) oper2) );
+}
+
+void opRet(){
+    /* C2 RET Iw */
+    oper1 = getmem16 (segregs[regcs], ip);
+    ip = pop();
+    putreg16 (regsp, getreg16 (regsp) + oper1);
+}
+
+void opRet_2(){
+    /* C3 RET */
+    ip = pop();
+}
+
+void opLes(){
+    /* C4 LES Gv Mp */
+    modregrm();
+    getea (rm);
+    putreg16 (reg, read86 (ea) + read86 (ea + 1) * 256);
+    segregs[reges] = read86 (ea + 2) + read86 (ea + 3) * 256;
+}
+
+void opLds(){
+    /* C5 LDS Gv Mp */
+    modregrm();
+    getea (rm);
+    putreg16 (reg, read86 (ea) + read86 (ea + 1) * 256);
+    segregs[regds] = read86 (ea + 2) + read86 (ea + 3) * 256;
+}
+
+void opMovEbIb(){
+    /* C6 MOV Eb Ib */
+    modregrm();
+    writerm8 (rm, getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+}
+
+void opMovEvIv(){
+    /* C7 MOV Ev Iv */
+    modregrm();
+    writerm16 (rm, getmem16 (segregs[regcs], ip) );
+    StepIP (2);
+}
+
+void opEnter(){
+    /* C8 ENTER (80186+) */
+    stacksize = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    nestlev = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    push (getreg16 (regbp) );
+    frametemp = getreg16 (regsp);
+    if (nestlev) {
+        for (temp16 = 1; temp16 < nestlev; temp16++) {
+            putreg16 (regbp, getreg16 (regbp) - 2);
+            push (getreg16 (regbp) );
+        }
+
+        push (getreg16 (regsp) );
+    }
+
+    putreg16 (regbp, frametemp);
+    putreg16 (regsp, getreg16 (regbp) - stacksize);
+
+}
+
+void opLeave(){
+    /* C9 LEAVE (80186+) */
+    putreg16 (regsp, getreg16 (regbp) );
+    putreg16 (regbp, pop() );
+}
+
+void opRetfIw(){
+    /* CA RETF Iw */
+    oper1 = getmem16 (segregs[regcs], ip);
+    ip = pop();
+    segregs[regcs] = pop();
+    putreg16 (regsp, getreg16 (regsp) + oper1);
+}
+
+void opRetf(){
+    /* CB RETF */
+    ip = pop();;
+    segregs[regcs] = pop();
+}
+
+void opInt3(){
+    /* CC INT 3 */
+    intcall86 (3);
+}
+
+void opIntIb(){
+    /* CD INT Ib */
+    oper1b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    intcall86 (oper1b);
+}
+
+void opInto(){
+    /* CE INTO */
+    if (of) {
+        intcall86 (4);
+    }
+}
+
+void opIret(){
+    /* CF IRET */
+    ip = pop();
+    segregs[regcs] = pop();
+    decodeflagsword (pop() );
+}
+
+void opGrp2Eb1(){
+    /* D0 GRP2 Eb 1 */
+    modregrm();
+    oper1b = readrm8 (rm);
+    writerm8 (rm, op_grp2_8 (1) );
+}
+
+void opGrp2Ev1(){
+    /* D1 GRP2 Ev 1 */
+    modregrm();
+    oper1 = readrm16 (rm);
+    writerm16 (rm, op_grp2_16 (1) );
+}
+
+void opGrp2EbCl(){
+    /* D2 GRP2 Eb regs.byteregs[regcl] */
+    modregrm();
+    oper1b = readrm8 (rm);
+    writerm8 (rm, op_grp2_8 (regs.byteregs[regcl]) );
+}
+
+void opGrp2EvCl(){
+    /* D3 GRP2 Ev regs.byteregs[regcl] */
+    modregrm();
+    oper1 = readrm16 (rm);
+    writerm16 (rm, op_grp2_16 (regs.byteregs[regcl]) );
+}
+
+void opAamI0(){
+    /* D4 AAM I0 */
+    oper1 = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    if (!oper1) {
+        intcall86 (0);
+        return;
+    }	/* division by zero */
+
+    regs.byteregs[regah] = (regs.byteregs[regal] / oper1) & 255;
+    regs.byteregs[regal] = (regs.byteregs[regal] % oper1) & 255;
+    flag_szp16 (getreg16 (regax) );
+}
+
+void opAadI0(){
+    /* D5 AAD I0 */
+    oper1 = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    regs.byteregs[regal] = (regs.byteregs[regah] * oper1 + regs.byteregs[regal]) & 255;
+    regs.byteregs[regah] = 0;
+    flag_szp16 (regs.byteregs[regah] * oper1 + regs.byteregs[regal]);
+    sf = 0;
+}
+
+void opXlat(){
+    /* D6 XLAT on V20/V30, SALC on 8086/8088 */
+    regs.byteregs[regal] = cf ? 0xFF : 0x00;
+}
+
+void opXlat_2(){
+    /* D7 XLAT */
+    regs.byteregs[regal] = read86(useseg * 16 + (regs.wordregs[regbx]) + regs.byteregs[regal]);
+}
+
+void opEscapeToFpu(){
+    /* escape to x87 FPU (unsupported) */
+    modregrm();
+}
+
+void opLoopnz(){
+    /* E0 LOOPNZ Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    putreg16 (regcx, getreg16 (regcx) - 1);
+    if ( (getreg16 (regcx) ) && !zf) {
+        ip = ip + temp16;
+    }
+}
+
+void opLoopz(){
+    /* E1 LOOPZ Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    putreg16 (regcx, (getreg16 (regcx) ) - 1);
+    if ( (getreg16 (regcx) ) && (zf == 1) ) {
+        ip = ip + temp16;
+    }
+}
+
+void opLoop(){
+    /* E2 LOOP Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    putreg16 (regcx, (getreg16 (regcx) ) - 1);
+    if (getreg16 (regcx) ) {
+        ip = ip + temp16;
+    }
+}
+
+void opJcxz(){
+    /* E3 JCXZ Jb */
+    temp16 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    if (! (getreg16 (regcx) ) ) {
+        ip = ip + temp16;
+    }
+}
+
+void opInAlIb(){
+    /* E4 IN regs.byteregs[regal] Ib */
+    oper1b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    regs.byteregs[regal] = (uint8_t) portin (oper1b);
+}
+
+void opInEaxIb(){
+    /* E5 IN eAX Ib */
+    oper1b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    putreg16 (regax, portin16 (oper1b) );
+}
+
+void opOutIbAl(){
+    /* E6 OUT Ib regs.byteregs[regal] */
+    oper1b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    portout (oper1b, regs.byteregs[regal]);
+}
+
+void opOutIbEax(){
+    /* E7 OUT Ib eAX */
+    oper1b = getmem8 (segregs[regcs], ip);
+    StepIP (1);
+    portout16 (oper1b, (getreg16 (regax) ) );
+}
+
+void opCallJv(){
+    /* E8 CALL Jv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    push (ip);
+    ip = ip + oper1;
+}
+
+void opJmpJv(){
+    /* E9 JMP Jv */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    ip = ip + oper1;
+}
+
+void opJmpAp(){
+    /* EA JMP Ap */
+    oper1 = getmem16 (segregs[regcs], ip);
+    StepIP (2);
+    oper2 = getmem16 (segregs[regcs], ip);
+    ip = oper1;
+    segregs[regcs] = oper2;
+}
+
+void opJmpJb(){
+    /* EB JMP Jb */
+    oper1 = signext (getmem8 (segregs[regcs], ip) );
+    StepIP (1);
+    ip = ip + oper1;
+}
+
+void opInAlDx(){
+    /* EC IN regs.byteregs[regal] regdx */
+    oper1 = (getreg16 (regdx) );
+    regs.byteregs[regal] = (uint8_t) portin (oper1);
+}
+
+void opInEaxDx(){
+    /* ED IN eAX regdx */
+    oper1 = (getreg16 (regdx) );
+    putreg16 (regax, portin16 (oper1) );
+}
+
+void opOutDxAl(){
+    /* EE OUT regdx regs.byteregs[regal] */
+    oper1 = (getreg16 (regdx) );
+    portout (oper1, regs.byteregs[regal]);
+}
+
+void opOutDxAx(){
+    /* EF OUT regdx eAX */
+    oper1 = (getreg16 (regdx) );
+    portout16 (oper1, (getreg16 (regax) ) );
+}
+
+void opLock(){
+    /* F0 LOCK */
+}
+
+void opHlt(){
+    /* F4 HLT */
+    ip--;
+}
+
+void opCmc(){
+    /* F5 CMC */
+    if (!cf) {
+        cf = 1;
+    }
+    else {
+        cf = 0;
+    }
+}
+
+void opGrp3a(){
+    /* F6 GRP3a Eb */
+    modregrm();
+    oper1b = readrm8 (rm);
+    op_grp3_8();
+    if ( (reg > 1) && (reg < 4) ) {
+        writerm8 (rm, res8);
+    }
+}
+
+void opGrp3b(){
+    /* F7 GRP3b Ev */
+    modregrm();
+    oper1 = readrm16 (rm);
+    op_grp3_16();
+    if ( (reg > 1) && (reg < 4) ) {
+        writerm16 (rm, res16);
+    }
+}
+
+void opClc(){
+    /* F8 CLC */
+    cf = 0;
+}
+
+void opStc(){
+    /* F9 STC */
+    cf = 1;
+}
+
+void opCli(){
+    /* FA CLI */
+    ifl = 0;
+}
+
+void opSti(){
+    /* FB STI */
+    ifl = 1;
+}
+
+void opCld(){
+    /* FC CLD */
+    df = 0;
+}
+
+void opStd(){
+    /* FD STD */
+    df = 1;
+}
+
+void opGrp4(){
+    /* FE GRP4 Eb */
+    modregrm();
+    oper1b = readrm8 (rm);
+    oper2b = 1;
+    if (!reg) {
+        tempcf = cf;
+        res8 = oper1b + oper2b;
+        flag_add8 (oper1b, oper2b);
+        cf = tempcf;
+        writerm8 (rm, res8);
+    }
+    else {
+        tempcf = cf;
+        res8 = oper1b - oper2b;
+        flag_sub8 (oper1b, oper2b);
+        cf = tempcf;
+        writerm8 (rm, res8);
+    }
+}
+
+void opGrp5(){
+    /* FF GRP5 Ev */
+    modregrm();
+    oper1 = readrm16 (rm);
+    op_grp5();
+}
 
 void initOpcodeTable() {
     opcodeTable[0x00] = &opAdd8;
@@ -3435,6 +3848,71 @@ void initOpcodeTable() {
     opcodeTable[0xBD] = &opMovEbpIv;
     opcodeTable[0xBE] = &opMovEsiIv;
     opcodeTable[0xBF] = &opMovEdiIv;
+
+    opcodeTable[0xC0] = &opGrp2_8;
+    opcodeTable[0xC1] = &opGrp2_16;
+    opcodeTable[0xC2] = &opRet;
+    opcodeTable[0xC3] = &opRet_2;
+    opcodeTable[0xC4] = &opLes;
+    opcodeTable[0xC5] = &opLds;
+    opcodeTable[0xC6] = &opMovEbIb;
+    opcodeTable[0xC7] = &opMovEvIv;
+    opcodeTable[0xC8] = &opEnter;
+    opcodeTable[0xC9] = &opLeave;
+    opcodeTable[0xCA] = &opRetfIw;
+    opcodeTable[0xCB] = &opRetf;
+    opcodeTable[0xCC] = &opInt3;
+    opcodeTable[0xCD] = &opIntIb;
+    opcodeTable[0xCE] = &opInto;
+    opcodeTable[0xCF] = &opIret;
+    opcodeTable[0xD0] = &opGrp2Eb1;
+    opcodeTable[0xD1] = &opGrp2Ev1;
+    opcodeTable[0xD2] = &opGrp2EbCl;
+    opcodeTable[0xD3] = &opGrp2EvCl;
+    opcodeTable[0xD4] = &opAamI0;
+    opcodeTable[0xD5] = &opAadI0;
+    opcodeTable[0xD6] = &opXlat;
+    opcodeTable[0xD7] = &opXlat_2;
+
+    opcodeTable[0xD8] = &opEscapeToFpu;
+    opcodeTable[0xD9] = &opEscapeToFpu;
+    opcodeTable[0xDA] = &opEscapeToFpu;
+    opcodeTable[0xDB] = &opEscapeToFpu;
+    opcodeTable[0xDC] = &opEscapeToFpu;
+    opcodeTable[0xDD] = &opEscapeToFpu;
+    opcodeTable[0xDE] = &opEscapeToFpu;
+    opcodeTable[0xDF] = &opEscapeToFpu;
+
+    opcodeTable[0xE0] = &opLoopnz;
+    opcodeTable[0xE1] = &opLoopz;
+    opcodeTable[0xE2] = &opLoop;
+    opcodeTable[0xE3] = &opJcxz;
+    opcodeTable[0xE4] = &opInAlIb;
+    opcodeTable[0xE5] = &opInEaxIb;
+    opcodeTable[0xE6] = &opOutIbAl;
+    opcodeTable[0xE7] = &opOutIbEax;
+    opcodeTable[0xE8] = &opCallJv;
+    opcodeTable[0xE9] = &opJmpJv;
+    opcodeTable[0xEA] = &opJmpAp;
+    opcodeTable[0xEB] = &opJmpJb;
+    opcodeTable[0xEC] = &opInAlDx;
+    opcodeTable[0xED] = &opInEaxDx;
+    opcodeTable[0xEE] = &opOutDxAl;
+    opcodeTable[0xEF] = &opOutDxAx;
+
+    opcodeTable[0xF0] = &opLock;
+    opcodeTable[0xF4] = &opHlt;
+    opcodeTable[0xF5] = &opCmc;
+    opcodeTable[0xF6] = &opGrp3a;
+    opcodeTable[0xF7] = &opGrp3b;
+    opcodeTable[0xF8] = &opClc;
+    opcodeTable[0xF9] = &opStc;
+    opcodeTable[0xFA] = &opCli;
+    opcodeTable[0xFB] = &opSti;
+    opcodeTable[0xFC] = &opCld;
+    opcodeTable[0xFD] = &opStd;
+    opcodeTable[0xFE] = &opGrp4;
+    opcodeTable[0xFF] = &opGrp5;
 }
 
 void initLookupTables() {
@@ -3518,385 +3996,7 @@ void exec86 (uint32_t execloops) {
         totalexec++;
 
         /*todo remove*/
-        if(opcodeTable[opcode] != NULL) {
-            opcodeTable[opcode]();
-        }
-        switch (opcode) {
-
-        case 0xC0:	/* C0 GRP2 byte imm8 (80186+) */
-            modregrm();
-            oper1b = readrm8 (rm);
-            oper2b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            writerm8 (rm, op_grp2_8 (oper2b) );
-            break;
-
-        case 0xC1:	/* C1 GRP2 word imm8 (80186+) */
-            modregrm();
-            oper1 = readrm16 (rm);
-            oper2 = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            writerm16 (rm, op_grp2_16 ( (uint8_t) oper2) );
-            break;
-
-        case 0xC2:	/* C2 RET Iw */
-            oper1 = getmem16 (segregs[regcs], ip);
-            ip = pop();
-            putreg16 (regsp, getreg16 (regsp) + oper1);
-            break;
-
-        case 0xC3:	/* C3 RET */
-            ip = pop();
-            break;
-
-        case 0xC4:	/* C4 LES Gv Mp */
-            modregrm();
-            getea (rm);
-            putreg16 (reg, read86 (ea) + read86 (ea + 1) * 256);
-            segregs[reges] = read86 (ea + 2) + read86 (ea + 3) * 256;
-            break;
-
-        case 0xC5:	/* C5 LDS Gv Mp */
-            modregrm();
-            getea (rm);
-            putreg16 (reg, read86 (ea) + read86 (ea + 1) * 256);
-            segregs[regds] = read86 (ea + 2) + read86 (ea + 3) * 256;
-            break;
-
-        case 0xC6:	/* C6 MOV Eb Ib */
-            modregrm();
-            writerm8 (rm, getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            break;
-
-        case 0xC7:	/* C7 MOV Ev Iv */
-            modregrm();
-            writerm16 (rm, getmem16 (segregs[regcs], ip) );
-            StepIP (2);
-            break;
-
-        case 0xC8:	/* C8 ENTER (80186+) */
-            stacksize = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            nestlev = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            push (getreg16 (regbp) );
-            frametemp = getreg16 (regsp);
-            if (nestlev) {
-                for (temp16 = 1; temp16 < nestlev; temp16++) {
-                    putreg16 (regbp, getreg16 (regbp) - 2);
-                    push (getreg16 (regbp) );
-                }
-
-                push (getreg16 (regsp) );
-            }
-
-            putreg16 (regbp, frametemp);
-            putreg16 (regsp, getreg16 (regbp) - stacksize);
-
-            break;
-
-        case 0xC9:	/* C9 LEAVE (80186+) */
-            putreg16 (regsp, getreg16 (regbp) );
-            putreg16 (regbp, pop() );
-
-            break;
-
-        case 0xCA:	/* CA RETF Iw */
-            oper1 = getmem16 (segregs[regcs], ip);
-            ip = pop();
-            segregs[regcs] = pop();
-            putreg16 (regsp, getreg16 (regsp) + oper1);
-            break;
-
-        case 0xCB:	/* CB RETF */
-            ip = pop();;
-            segregs[regcs] = pop();
-            break;
-
-        case 0xCC:	/* CC INT 3 */
-            intcall86 (3);
-            break;
-
-        case 0xCD:	/* CD INT Ib */
-            oper1b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            intcall86 (oper1b);
-            break;
-
-        case 0xCE:	/* CE INTO */
-            if (of) {
-                intcall86 (4);
-            }
-            break;
-
-        case 0xCF:	/* CF IRET */
-            ip = pop();
-            segregs[regcs] = pop();
-            decodeflagsword (pop() );
-
-            /*
-                         * if (net.enabled) net.canrecv = 1;
-                         */
-            break;
-
-        case 0xD0:	/* D0 GRP2 Eb 1 */
-            modregrm();
-            oper1b = readrm8 (rm);
-            writerm8 (rm, op_grp2_8 (1) );
-            break;
-
-        case 0xD1:	/* D1 GRP2 Ev 1 */
-            modregrm();
-            oper1 = readrm16 (rm);
-            writerm16 (rm, op_grp2_16 (1) );
-            break;
-
-        case 0xD2:	/* D2 GRP2 Eb regs.byteregs[regcl] */
-            modregrm();
-            oper1b = readrm8 (rm);
-            writerm8 (rm, op_grp2_8 (regs.byteregs[regcl]) );
-            break;
-
-        case 0xD3:	/* D3 GRP2 Ev regs.byteregs[regcl] */
-            modregrm();
-            oper1 = readrm16 (rm);
-            writerm16 (rm, op_grp2_16 (regs.byteregs[regcl]) );
-            break;
-
-        case 0xD4:	/* D4 AAM I0 */
-            oper1 = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            if (!oper1) {
-                intcall86 (0);
-                break;
-            }	/* division by zero */
-
-            regs.byteregs[regah] = (regs.byteregs[regal] / oper1) & 255;
-            regs.byteregs[regal] = (regs.byteregs[regal] % oper1) & 255;
-            flag_szp16 (getreg16 (regax) );
-            break;
-
-        case 0xD5:	/* D5 AAD I0 */
-            oper1 = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            regs.byteregs[regal] = (regs.byteregs[regah] * oper1 + regs.byteregs[regal]) & 255;
-            regs.byteregs[regah] = 0;
-            flag_szp16 (regs.byteregs[regah] * oper1 + regs.byteregs[regal]);
-            sf = 0;
-            break;
-
-        case 0xD6:	/* D6 XLAT on V20/V30, SALC on 8086/8088 */
-#ifndef CPU_V20
-            regs.byteregs[regal] = cf ? 0xFF : 0x00;
-            break;
-#endif
-
-        case 0xD7:	/* D7 XLAT */
-            regs.byteregs[regal] = read86(useseg * 16 + (regs.wordregs[regbx]) + regs.byteregs[regal]);
-            break;
-
-        case 0xD8:
-        case 0xD9:
-        case 0xDA:
-        case 0xDB:
-        case 0xDC:
-        case 0xDE:
-        case 0xDD:
-        case 0xDF:	/* escape to x87 FPU (unsupported) */
-            modregrm();
-            break;
-
-        case 0xE0:	/* E0 LOOPNZ Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            putreg16 (regcx, getreg16 (regcx) - 1);
-            if ( (getreg16 (regcx) ) && !zf) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0xE1:	/* E1 LOOPZ Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            putreg16 (regcx, (getreg16 (regcx) ) - 1);
-            if ( (getreg16 (regcx) ) && (zf == 1) ) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0xE2:	/* E2 LOOP Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            putreg16 (regcx, (getreg16 (regcx) ) - 1);
-            if (getreg16 (regcx) ) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0xE3:	/* E3 JCXZ Jb */
-            temp16 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            if (! (getreg16 (regcx) ) ) {
-                ip = ip + temp16;
-            }
-            break;
-
-        case 0xE4:	/* E4 IN regs.byteregs[regal] Ib */
-            oper1b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            regs.byteregs[regal] = (uint8_t) portin (oper1b);
-            break;
-
-        case 0xE5:	/* E5 IN eAX Ib */
-            oper1b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            putreg16 (regax, portin16 (oper1b) );
-            break;
-
-        case 0xE6:	/* E6 OUT Ib regs.byteregs[regal] */
-            oper1b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            portout (oper1b, regs.byteregs[regal]);
-            break;
-
-        case 0xE7:	/* E7 OUT Ib eAX */
-            oper1b = getmem8 (segregs[regcs], ip);
-            StepIP (1);
-            portout16 (oper1b, (getreg16 (regax) ) );
-            break;
-
-        case 0xE8:	/* E8 CALL Jv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            push (ip);
-            ip = ip + oper1;
-            break;
-
-        case 0xE9:	/* E9 JMP Jv */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            ip = ip + oper1;
-            break;
-
-        case 0xEA:	/* EA JMP Ap */
-            oper1 = getmem16 (segregs[regcs], ip);
-            StepIP (2);
-            oper2 = getmem16 (segregs[regcs], ip);
-            ip = oper1;
-            segregs[regcs] = oper2;
-            break;
-
-        case 0xEB:	/* EB JMP Jb */
-            oper1 = signext (getmem8 (segregs[regcs], ip) );
-            StepIP (1);
-            ip = ip + oper1;
-            break;
-
-        case 0xEC:	/* EC IN regs.byteregs[regal] regdx */
-            oper1 = (getreg16 (regdx) );
-            regs.byteregs[regal] = (uint8_t) portin (oper1);
-            break;
-
-        case 0xED:	/* ED IN eAX regdx */
-            oper1 = (getreg16 (regdx) );
-            putreg16 (regax, portin16 (oper1) );
-            break;
-
-        case 0xEE:	/* EE OUT regdx regs.byteregs[regal] */
-            oper1 = (getreg16 (regdx) );
-            portout (oper1, regs.byteregs[regal]);
-            break;
-
-        case 0xEF:	/* EF OUT regdx eAX */
-            oper1 = (getreg16 (regdx) );
-            portout16 (oper1, (getreg16 (regax) ) );
-            break;
-
-        case 0xF0:	/* F0 LOCK */
-            break;
-
-        case 0xF4:	/* F4 HLT */
-            ip--;
-            break;
-
-        case 0xF5:	/* F5 CMC */
-            if (!cf) {
-                cf = 1;
-            }
-            else {
-                cf = 0;
-            }
-            break;
-
-        case 0xF6:	/* F6 GRP3a Eb */
-            modregrm();
-            oper1b = readrm8 (rm);
-            op_grp3_8();
-            if ( (reg > 1) && (reg < 4) ) {
-                writerm8 (rm, res8);
-            }
-            break;
-
-        case 0xF7:	/* F7 GRP3b Ev */
-            modregrm();
-            oper1 = readrm16 (rm);
-            op_grp3_16();
-            if ( (reg > 1) && (reg < 4) ) {
-                writerm16 (rm, res16);
-            }
-            break;
-
-        case 0xF8:	/* F8 CLC */
-            cf = 0;
-            break;
-
-        case 0xF9:	/* F9 STC */
-            cf = 1;
-            break;
-
-        case 0xFA:	/* FA CLI */
-            ifl = 0;
-            break;
-
-        case 0xFB:	/* FB STI */
-            ifl = 1;
-            break;
-
-        case 0xFC:	/* FC CLD */
-            df = 0;
-            break;
-
-        case 0xFD:	/* FD STD */
-            df = 1;
-            break;
-
-        case 0xFE:	/* FE GRP4 Eb */
-            modregrm();
-            oper1b = readrm8 (rm);
-            oper2b = 1;
-            if (!reg) {
-                tempcf = cf;
-                res8 = oper1b + oper2b;
-                flag_add8 (oper1b, oper2b);
-                cf = tempcf;
-                writerm8 (rm, res8);
-            }
-            else {
-                tempcf = cf;
-                res8 = oper1b - oper2b;
-                flag_sub8 (oper1b, oper2b);
-                cf = tempcf;
-                writerm8 (rm, res8);
-            }
-            break;
-
-        case 0xFF:	/* FF GRP5 Ev */
-            modregrm();
-            oper1 = readrm16 (rm);
-            op_grp5();
-            break;
-        }
+        opcodeTable[opcode]();
 
         if (!running) {
             return;
