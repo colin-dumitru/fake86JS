@@ -48,7 +48,7 @@ extern int16_t speakergensample();
 extern int16_t getssourcebyte();
 extern int16_t getBlasterSample();
 
-void create_output_wav (uint8_t *filename) {
+void create_output_wav (char *filename) {
 	printf ("Creating %s for audio logging... ", filename);
 	wav_file = fopen (filename, "wb");
 	if (wav_file == NULL) {

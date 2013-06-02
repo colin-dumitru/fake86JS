@@ -197,7 +197,8 @@ void startConsole() {
 }
 
 void runBurst() {
-    for (int i = 0; i < burstLegth; i++) {
+    static int i;
+    for (i = 0; i < burstLegth; i++) {
         exec86 (10000);
         handleinput();
         if (scrmodechange)

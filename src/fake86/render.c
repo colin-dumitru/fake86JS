@@ -51,7 +51,7 @@ extern uint32_t usefullscreen, usegrabmode;
 
 uint64_t totalframes = 0;
 uint32_t framedelay = 20;
-uint8_t scrmodechange = 0, noscale = 0, nosmooth = 1, renderbenchmark = 0, doaudio = 1;
+uint8_t scrmodechange = 0, noscale = 0, nosmooth = 1, renderbenchmark = 0, doaudio = 0;
 char windowtitle[128];
 
 void initcga();
@@ -61,10 +61,18 @@ void VideoThread (void *dummy);
 void *VideoThread (void *dummy);
 #endif
 
-void setwindowtitle (uint8_t *extra) {
+void setwindowtitle (char *extra) {
     char temptext[128];
     sprintf (temptext, "%s%s", windowtitle, extra);
     SDL_WM_SetCaption ( (const char *) temptext, NULL);
+}
+
+uint32_t mapRgb(SDL_Surface *target, u_int8_t r, u_int8_t g, u_int8_t b) {
+#ifdef EM
+    return (r) + (g << 8) + (b << 16);
+#else
+    SDL_MapRGB(target->format, r, g, b);
+#endif
 }
 
 uint32_t prestretch[1024][1024];
@@ -110,10 +118,16 @@ void runVideoTick() {
     if (updatedscreen || renderbenchmark) {
         updatedscreen = 0;
         if (screen != NULL) {
+#ifndef EM
             MutexLock (screenmutex);
-            if (regenscalemap) createscalemap();
+#endif
+            if (regenscalemap)
+                createscalemap();
             draw();
+
+#ifndef EM
             MutexUnlock (screenmutex);
+#endif
         }
         totalframes++;
     }
@@ -144,7 +158,7 @@ uint8_t initscreen (uint8_t *ver) {
     initcga();
 
 #ifdef EM
-    registerTimeout("runVideoTick", 0);
+    registerTimeout("runVideoTick", (int)(1000 / 30));
 #elif defined _WIN32
     InitializeCriticalSection (&screenmutex);
     _beginthread (VideoThread, 0, NULL);
@@ -169,7 +183,9 @@ void *VideoThread (void *dummy) {
 }
 
 void doscrmodechange() {
+#ifndef EM
     MutexLock (screenmutex);
+#endif
     if (scrmodechange) {
         if (screen != NULL) {
             SDL_FreeSurface (screen);
@@ -196,15 +212,18 @@ void doscrmodechange() {
         regenscalemap = 1;
         createscalemap();
     }
+
+#ifndef EM
     MutexUnlock (screenmutex);
+#endif
     scrmodechange = 0;
 }
 
 void stretchblit (SDL_Surface *target) {
-    uint32_t srcx, srcy, dstx, dsty, lastx, lasty, r, g, b;
-    uint32_t consecutivex, consecutivey = 0, limitx, limity, scalemapptr;
-    uint32_t ofs;
-    uint8_t *pixelrgb;
+    static uint32_t srcx, srcy, dstx, dsty, lastx, lasty, r, g, b;
+    static uint32_t consecutivex, consecutivey = 0, limitx, limity, scalemapptr;
+    static uint32_t ofs;
+    static uint8_t *pixelrgb;
 
     limitx = (uint32_t)((double) nw / (double) target->w);
     limity = (uint32_t)((double) nh / (double) target->h);
@@ -268,7 +287,7 @@ void stretchblit (SDL_Surface *target) {
                 b = b >> 1;
                 //r = 0; g = 0; b = 255;
             }
-            ( (uint32_t *) target->pixels) [ofs++] = SDL_MapRGB (target->format, (uint8_t) r, (uint8_t) g, (uint8_t) b);
+            ( (uint32_t *) target->pixels) [ofs++] = mapRgb(target->format, (uint8_t) r, (uint8_t) g, (uint8_t) b);
             lastx = srcx;
         }
         lasty = srcy;
@@ -280,9 +299,9 @@ void stretchblit (SDL_Surface *target) {
 }
 
 void roughblit (SDL_Surface *target) {
-    uint32_t srcx, srcy, dstx, dsty, scalemapptr;
-    int32_t ofs;
-    uint8_t *pixelrgb;
+    static uint32_t srcx, srcy, dstx, dsty, scalemapptr;
+    static int32_t ofs;
+    static uint8_t *pixelrgb;
 
     if (SDL_MUSTLOCK (target) )
         if (SDL_LockSurface (target) < 0)
@@ -295,7 +314,7 @@ void roughblit (SDL_Surface *target) {
         for (dstx=0; dstx<(uint32_t)target->w; dstx++) {
             srcx = scalemap[scalemapptr++];
             pixelrgb = (uint8_t *) &prestretch[srcy][srcx];
-            ( (uint32_t *) target->pixels) [ofs++] = SDL_MapRGB (target->format, pixelrgb[0], pixelrgb[1], pixelrgb[2]);
+            ( (uint32_t *) target->pixels) [ofs++] = mapRgb(target->format, pixelrgb[0], pixelrgb[1], pixelrgb[2]);
         }
     }
 
@@ -327,7 +346,7 @@ void doubleblit (SDL_Surface *target) {
         for (dstx=0; dstx<(uint32_t)target->w; dstx += 2) {
             srcx = (uint32_t) (dstx >> 1);
             pixelrgb = (uint8_t *) &prestretch[srcy][srcx];
-            curcolor = SDL_MapRGB (target->format, pixelrgb[0], pixelrgb[1], pixelrgb[2]);
+            curcolor = mapRgb(target->format, pixelrgb[0], pixelrgb[1], pixelrgb[2]);
             ( (uint32_t *) target->pixels) [ofs+target->w] = curcolor;
             ( (uint32_t *) target->pixels) [ofs++] = curcolor;
             ( (uint32_t *) target->pixels) [ofs+target->w] = curcolor;
@@ -344,12 +363,14 @@ extern uint16_t vtotal;
 void draw () {
     uint32_t planemode, vgapage, color, chary, charx, vidptr, divx, divy, curchar, curpixel, usepal, intensity, blockw, curheight, x1, y1;
     switch (vidmode) {
+    //text modes
     case 0:
     case 1:
-    case 2: //text modes
+    case 2:
     case 3:
     case 7:
     case 0x82:
+
         nw = 640;
         nh = 400;
         vgapage = ( (uint32_t) VGA_CRTC[0xC]<<8) + (uint32_t) VGA_CRTC[0xD];
@@ -376,8 +397,9 @@ void draw () {
                     color = fontcga[curchar*128 + (y%16) *8 + ( (x/divx) %8) ];
                 }
                 if (vidcolor) {
-                    if (!color) if (portram[0x3D8]&128) color = palettecga[ (RAM[vidptr+1]/16) &7];
-                    else color = palettecga[RAM[vidptr+1]/16]; //high intensity background
+                    if (!color)
+                        if (portram[0x3D8]&128) color = palettecga[ (RAM[vidptr+1]/16) &7];
+                        else color = palettecga[RAM[vidptr+1]/16]; //high intensity background
                     else color = palettecga[RAM[vidptr+1]&15];
                 }
                 else {
@@ -544,9 +566,13 @@ void draw () {
             nw = 320;
             nh = 200;
         }
-        if (VGA_SC[4] & 6) planemode = 1;
-        else planemode = 0;
+        if (VGA_SC[4] & 6)
+            planemode = 1;
+        else
+            planemode = 0;
+
         vgapage = ( (uint32_t) VGA_CRTC[0xC]<<8) + (uint32_t) VGA_CRTC[0xD];
+
         for (y=0; y<nh; y++)
             for (x=0; x<nw; x++) {
                 if (!planemode) color = palettevga[RAM[videobase + y*nw + x]];
@@ -575,9 +601,13 @@ void draw () {
         }
     }
     if (nosmooth) {
-        if ( ((nw << 1) == screen->w) && ((nh << 1) == screen->h) ) doubleblit (screen);
-        else roughblit (screen);
+        if ( ((nw << 1) == screen->w) && ((nh << 1) == screen->h) )
+            doubleblit (screen);
+        else
+            roughblit (screen);
+    } else {
+        stretchblit (screen);
     }
-    else stretchblit (screen);
 }
+
 
